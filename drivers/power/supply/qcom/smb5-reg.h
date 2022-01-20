@@ -1,4 +1,5 @@
 /* Copyright (c) 2018-2019 The Linux Foundation. All rights reserved.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -488,7 +489,6 @@ enum {
 #define EN_MICRO_USB_WATER_PROTECTION_BIT		BIT(4)
 #define MICRO_USB_DETECTION_ON_TIME_CFG_MASK		GENMASK(3, 2)
 #define MICRO_USB_DETECTION_PERIOD_CFG_MASK		GENMASK(1, 0)
-
 #define TYPEC_MICRO_USB_MODE_REG		(TYPEC_BASE + 0x73)
 #define PMI632_TYPEC_MICRO_USB_MODE_REG		(TYPEC_BASE + 0x73)
 #define MICRO_USB_MODE_ONLY_BIT			BIT(0)

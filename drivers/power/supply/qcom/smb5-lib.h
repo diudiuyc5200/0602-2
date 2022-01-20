@@ -1,4 +1,5 @@
 /* Copyright (c) 2018-2020 The Linux Foundation. All rights reserved.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -38,6 +39,7 @@ enum print_reason {
 	PR_PARALLEL	= BIT(3),
 	PR_OTG		= BIT(4),
 	PR_WLS		= BIT(5),
+	PR_OEM		= BIT(6),
 };
 
 #define DEFAULT_VOTER			"DEFAULT_VOTER"
@@ -638,9 +640,6 @@ struct smb_charger {
 	struct power_supply		*ln_psy;
 	struct power_supply		*halo_psy;
 	struct power_supply		*cp_chip_psy;
-#if (defined CONFIG_BATT_VERIFY_BY_DS28E16 || defined CONFIG_BATT_VERIFY_BY_DS28E16_NABU)
-	struct power_supply		*batt_verify_psy;
-#endif
 	enum power_supply_type		real_charger_type;
 	enum power_supply_type          wireless_charger_type;
 
@@ -1257,7 +1256,7 @@ void smblib_hvdcp_exit_config(struct smb_charger *chg);
 void smblib_apsd_enable(struct smb_charger *chg, bool enable);
 int smblib_force_vbus_voltage(struct smb_charger *chg, u8 val);
 int smblib_get_irq_status(struct smb_charger *chg,
-				union power_supply_propval *val);
+		union power_supply_propval *val);
 #ifdef CONFIG_QPNP_SMB5_NABU
 int smb5_config_iterm(struct smb_charger *chg, int hi_thresh, int low_thresh);
 #endif
@@ -1279,8 +1278,4 @@ int smblib_init(struct smb_charger *chg);
 int smblib_deinit(struct smb_charger *chg);
 int smblib_get_prop_wireless_fw_version(struct smb_charger *chg,
 					union power_supply_propval *val);
-int smblib_set_prop_battery_charging_enabled(struct smb_charger *chg,
-					     const union power_supply_propval *val);
-int smblib_get_prop_battery_charging_enabled(struct smb_charger *chg,
-					     union power_supply_propval *val);
 #endif /* __SMB5_CHARGER_H */
