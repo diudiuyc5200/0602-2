@@ -153,6 +153,9 @@ static int one_thousand = 1000;
 #ifdef CONFIG_SCHED_WALT
 static int two_million = 2000000;
 #endif
+
+unsigned int sysctl_sched_min_task_util_for_uclamp = 51;
+
 #ifdef CONFIG_PRINTK
 static int ten_thousand = 10000;
 #endif
@@ -493,6 +496,15 @@ static struct ctl_table kern_table[] = {
 	{
 		.procname	= "sched_min_task_util_for_boost",
 		.data		= &sysctl_sched_min_task_util_for_boost,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= &zero,
+		.extra2		= &one_thousand,
+	},
+	{
+		.procname	= "sched_min_task_util_for_uclamp",
+		.data		= &sysctl_sched_min_task_util_for_uclamp,
 		.maxlen		= sizeof(unsigned int),
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec_minmax,
