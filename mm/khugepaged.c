@@ -1290,7 +1290,7 @@ static void retract_page_tables(struct address_space *mapping, pgoff_t pgoff)
 	i_mmap_lock_write(mapping);
 	vma_interval_tree_foreach(vma, &mapping->i_mmap, pgoff, pgoff) {
 		/* probably overkill */
-		if (vma->anon_vma)
+		if (READ_ONCE(vma->anon_vma))
 			continue;
 		addr = vma->vm_start + ((pgoff - vma->vm_pgoff) << PAGE_SHIFT);
 		if (addr & ~HPAGE_PMD_MASK)
@@ -1312,14 +1312,25 @@ static void retract_page_tables(struct address_space *mapping, pgoff_t pgoff)
 				spinlock_t *ptl;
 				unsigned long end = addr + HPAGE_PMD_SIZE;
 
-				vm_write_begin(vma);
+				/*
+				 * Re-check whether we have an ->anon_vma, because
+				 * collapse_and_free_pmd() requires that either no
+				 * ->anon_vma exists or the anon_vma is locked.
+				 * We already checked ->anon_vma above, but that check
+				 * is racy because ->anon_vma can be populated under the
+				 * mmap_sem in read mode.
+				 */
+				if (vma->anon_vma) {
+					up_write(&mm->mmap_sem);
+					continue;
+				}
 				mmu_notifier_invalidate_range_start(mm, addr,
 								    end);
 				ptl = pmd_lock(mm, pmd);
 				/* assume page table is clear */
 				_pmd = pmdp_collapse_flush(vma, addr, pmd);
 				spin_unlock(ptl);
-				vm_write_end(vma);
+				mm_dec_nr_ptes(vma->vm_mm);
 				atomic_long_dec(&mm->nr_ptes);
 				tlb_remove_table_sync_one();
 				pte_free(mm, pmd_pgtable(_pmd));
