@@ -16,6 +16,7 @@
 #include "zstd_deps.h"   /* ZSTD_malloc, ZSTD_calloc, ZSTD_free, ZSTD_memset */
 
 #include "mem.h" /* MEM_STATIC */
+#include "compiler.h" /* MEM_STATIC */
 #define ZSTD_STATIC_LINKING_ONLY
 #include <linux/zstd.h> /* ZSTD_customMem */
 
