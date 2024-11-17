@@ -377,9 +377,9 @@ else
 HOSTCC	= gcc
 HOSTCXX	= g++
 endif
-HOSTCFLAGS   := -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 \
-		-fomit-frame-pointer -std=gnu89 $(HOST_LFS_CFLAGS)
-HOSTCXXFLAGS := -O2 $(HOST_LFS_CFLAGS)
+HOSTCFLAGS   := -Wall -Wmissing-prototypes -Wstrict-prototypes -O3 \
+		-fomit-frame-pointer -std=gnu89 -pipe $(HOST_LFS_CFLAGS)
+HOSTCXXFLAGS := -O3 $(HOST_LFS_CFLAGS)
 HOSTLDFLAGS  := $(HOST_LFS_LDFLAGS)
 HOST_LOADLIBES := $(HOST_LFS_LIBS)
 
@@ -446,7 +446,7 @@ LINUXINCLUDE    := \
 		$(USERINCLUDE)
 
 KBUILD_AFLAGS   := -D__ASSEMBLY__
-KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -pipe \
 		   -fno-strict-aliasing -fno-common -fshort-wchar \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
@@ -725,6 +725,10 @@ endif
 LLVM_AR		:= llvm-ar
 LLVM_NM		:= llvm-nm
 export LLVM_AR LLVM_NM
+# Set O3 optimization level for LTO
+KBUILD_LDFLAGS	+= --plugin-opt=O3 --strip-debug
+else
+KBUILD_LDFLAGS	+= -O3 --strip-debug
 endif
 
 # The arch Makefile can set ARCH_{CPP,A,C}FLAGS to override the default
@@ -738,8 +742,6 @@ ifdef CONFIG_CC_WERROR
 KBUILD_CFLAGS	+= -Werror
 endif
 
-OPT_FLAGS := -O3 -march=armv8.2-a+lse+fp16+dotprod -mcpu=cortex-a55+crypto+crc
-
 KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
 KBUILD_CFLAGS	+= $(call cc-disable-warning,frame-address,)
 KBUILD_CFLAGS	+= $(call cc-disable-warning, format-truncation)
@@ -751,13 +753,9 @@ KBUILD_CFLAGS	+= $(call cc-disable-warning, attribute-alias)
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS   += -Os
 else
-KBUILD_CFLAGS	+= $(OPT_FLAGS)
-KBUILD_AFLAGS   += $(OPT_FLAGS)
-ifdef CONFIG_LTO_CLANG
-KBUILD_LDFLAGS += --plugin-opt=O3 --strip-debug -march=armv8.2-a+lse+fp16+dotprod -mcpu=cortex-a55+crypto+crc
-else
-KBUILD_LDFLAGS += $(OPT_FLAGS)
-endif
+KBUILD_CFLAGS   += -O3
+KBUILD_CFLAGS   += -mllvm -hot-cold-split=true
+KBUILD_CFLAGS   += -march=armv8.2-a+lse+crypto+dotprod -mcpu=cortex-a55+crypto+crc --cuda-path=/dev/null
 endif
 
 # Tell gcc to never replace conditional load with a non-conditional one
@@ -817,9 +815,6 @@ KBUILD_CFLAGS += $(call cc-option, -Wno-undefined-optimized)
 KBUILD_CFLAGS += $(call cc-option, -Wno-tautological-constant-out-of-range-compare)
 KBUILD_CFLAGS += $(call cc-option, -mllvm -disable-struct-const-merge)
 KBUILD_CFLAGS += $(call cc-option, -Wno-sometimes-uninitialized)
-
-# Enable hot cold split optimization
-KBUILD_CFLAGS   += -mllvm -hot-cold-split=true
 
 # Quiet clang warning: comparison of unsigned expression < 0 is always false
 
