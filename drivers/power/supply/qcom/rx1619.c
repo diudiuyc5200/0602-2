@@ -417,7 +417,6 @@ static int rx_get_property_names(struct rx1619_chg *chip)
 		dev_err(chip->dev, "no wireless_psy,return\n");
 		return -EINVAL;
 	}
-
 	chip->usb_psy = power_supply_get_by_name("usb");
 	if (!chip->usb_psy) {
 		dev_err(chip->dev, "[idt] no usb_psy,return\n");
