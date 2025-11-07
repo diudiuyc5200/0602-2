@@ -24,7 +24,6 @@
 #include <linux/miscdevice.h>
 #include <linux/ioctl.h>
 #include <asm/uaccess.h>
-//#include <soc/qcom/socinfo.h>
 
 #define rx1619_1_DRIVER_NAME      "rx1619_trim"
 
@@ -82,7 +81,6 @@ void rx1619_1_trim(void)
 	printk("--------------rx1619_1_trim--\n");
 }
 
-// first step: define regmap_config
 static const struct regmap_config rx1619_1_regmap_config = {
 	.reg_bits = 16,
 	.val_bits = 8,
@@ -111,7 +109,6 @@ static int rx1619_1_probe(struct i2c_client *client, const struct i2c_device_id 
 	device_init_wakeup(&client->dev, true);
 	i2c_set_clientdata(client, chip);
 
-	//rx1619_1_dump_reg();
 	g_chip = chip;
 
 	dev_err(chip->dev, "[rx1619_1] [%s] success! \n", __func__);
