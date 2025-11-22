@@ -58,6 +58,10 @@
 #include <net/tcp.h>
 #include <linux/bpf_trace.h>
 
+// 在 filter.c 文件的头部添加
+int __inet_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len, 
+                bool force_bind_address_no_port, bool with_lock);
+                
 /**
  *	sk_filter_trim_cap - run a packet through a socket filter
  *	@sk: sock associated with &sk_buff

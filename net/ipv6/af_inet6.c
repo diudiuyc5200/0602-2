@@ -84,6 +84,7 @@ struct ipv6_params ipv6_defaults = {
 };
 
 static int disable_ipv6_mod;
+extern int force_bind_address_no_port;  // 改为外部声明
 
 module_param_named(disable, disable_ipv6_mod, int, 0444);
 MODULE_PARM_DESC(disable, "Disable IPv6 module such that it is non-functional");
@@ -287,6 +288,7 @@ int inet6_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 	struct sock *sk = sock->sk;
 	struct inet_sock *inet = inet_sk(sk);
 	struct ipv6_pinfo *np = inet6_sk(sk);
+	const struct proto *prot;
 	struct net *net = sock_net(sk);
 	__be32 v4addr = 0;
 	unsigned short snum;
@@ -912,6 +914,25 @@ static const struct ipv6_stub ipv6_stub_impl = {
 	.nd_tbl	= &nd_tbl,
 };
 
+static int __inet6_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len,
+			bool force_bind_address_no_port, bool with_lock)
+{
+	struct socket sock;
+	int err;
+
+	sock.sk = sk;
+	
+	if (with_lock)
+		lock_sock(sk);
+	
+	err = inet6_bind(&sock, uaddr, addr_len);
+	
+	if (with_lock)
+		release_sock(sk);
+	
+	return err;
+}
+
 static const struct ipv6_bpf_stub ipv6_bpf_stub_impl = {
 	.inet6_bind = __inet6_bind,
 };
@@ -950,14 +971,14 @@ static int __init inet6_init(void)
 
 	err = proto_register(&pingv6_prot, 1);
 	if (err)
-		goto out_unregister_ping_proto;
+		goto out_unregister_raw_proto;
 
 	/* We MUST register RAW sockets before we create the ICMP6,
 	 * IGMP6, or NDISC control sockets.
 	 */
 	err = rawv6_init();
 	if (err)
-		goto out_unregister_raw_proto;
+		goto out_unregister_ping_proto;
 
 	/* Register the family here so that the init calls below will
 	 * be able to create sockets. (?? is this dangerous ??)

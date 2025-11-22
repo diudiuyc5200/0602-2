@@ -2517,4 +2517,8 @@ static inline void sk_pacing_shift_update(struct sock *sk, int val)
 int sockev_register_notify(struct notifier_block *nb);
 int sockev_unregister_notify(struct notifier_block *nb);
 
+/* Socket accounting and control */
+extern int sysctl_reserved_port_bind;
+extern int force_bind_address_no_port;
+
 #endif	/* _SOCK_H */

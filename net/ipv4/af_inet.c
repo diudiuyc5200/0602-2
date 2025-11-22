@@ -122,6 +122,7 @@
 #include <net/l3mdev.h>
 
 int sysctl_reserved_port_bind __read_mostly = 1;
+int force_bind_address_no_port __read_mostly;  // 添加这一行
 
 /* The inetsw table contains everything that inet_create needs to
  * build a new socket.
@@ -467,7 +468,7 @@ int inet_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 
 	tb_id = l3mdev_fib_table_by_index(net, sk->sk_bound_dev_if) ? : tb_id;
 	chk_addr_ret = inet_addr_type_table(net, addr->sin_addr.s_addr, tb_id);
-
+	
 	/* Not specified by any standard per-se, however it breaks too
 	 * many applications when removed.  It is unfortunate since
 	 * allowing applications to make a non-local bind solves
@@ -539,17 +540,46 @@ out:
 }
 EXPORT_SYMBOL(inet_bind);
 
+/*
+ * BPF 程序使用的内部绑定函数
+ * 这个函数包装了 inet_bind，添加了额外的参数控制
+ */
+int __inet_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len,
+		bool force_bind_address_no_port, bool with_lock)
+{
+	struct socket sock;
+	int err;
+
+	/* 创建临时的 socket 结构 */
+	sock.sk = sk;
+	
+	/* 根据参数决定是否加锁 */
+	if (with_lock)
+		lock_sock(sk);
+	
+	/* 调用原始的绑定函数 */
+	err = inet_bind(&sock, uaddr, addr_len);
+	
+	/* 如果之前加了锁，现在释放 */
+	if (with_lock)
+		release_sock(sk);
+	
+	return err;
+}
+EXPORT_SYMBOL(__inet_bind);
+
 int inet_dgram_connect(struct socket *sock, struct sockaddr *uaddr,
 		       int addr_len, int flags)
 {
 	struct sock *sk = sock->sk;
+	const struct proto *prot;  // 添加这行声明
 	int err;
 
 	if (addr_len < sizeof(uaddr->sa_family))
 		return -EINVAL;
 
 	/* IPV6_ADDRFORM can change sk->sk_prot under us. */
-	prot = READ_ONCE(sk->sk_prot);
+	prot = READ_ONCE(sk->sk_prot);  // 现在这个变量已经声明了
 
 	if (uaddr->sa_family == AF_UNSPEC)
 		return prot->disconnect(sk, flags);
