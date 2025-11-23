@@ -1553,12 +1553,10 @@ TRACE_EVENT(sched_task_util,
 	TP_PROTO(struct task_struct *p, int next_cpu, int backup_cpu,
 		int target_cpu, bool sync, int need_idle, int fastpath,
 		bool placement_boost, u64 start_t,
-		bool stune_boosted, bool is_rtg, bool rtg_skip_min,
-		int start_cpu),
+		bool stune_boosted, bool is_rtg, bool rtg_skip_min),
 
 	TP_ARGS(p, next_cpu, backup_cpu, target_cpu, sync, need_idle, fastpath,
-		placement_boost, start_t, stune_boosted, is_rtg, rtg_skip_min,
-		start_cpu),
+		placement_boost, start_t, stune_boosted, is_rtg, rtg_skip_min),
 
 	TP_STRUCT__entry(
 		__field(int, pid			)
@@ -1572,7 +1570,6 @@ TRACE_EVENT(sched_task_util,
 		__field(int, need_idle			)
 		__field(int, fastpath			)
 		__field(int, placement_boost		)
-		__field(int, rtg_cpu			)
 		__field(u64, latency			)
 		__field(bool, stune_boosted		)
 		__field(bool, is_rtg			)
@@ -1597,7 +1594,7 @@ TRACE_EVENT(sched_task_util,
 		__entry->stune_boosted		= stune_boosted;
 		__entry->is_rtg			= is_rtg;
 		__entry->rtg_skip_min		= rtg_skip_min;
-		__entry->start_cpu		= start_cpu;
+		__entry->start_cpu		= task_cpu(p);  // 使用 task_cpu(p) 而不是 start_cpu
 		__entry->unfilter		= p->unfilter;
 	),
 
@@ -1609,7 +1606,7 @@ TRACE_EVENT(sched_task_util,
 		__entry->latency, __entry->stune_boosted,
 		__entry->is_rtg, __entry->rtg_skip_min, __entry->start_cpu,
 		__entry->unfilter)
-)
+);
 
 /*
  * Tracepoint for sched_get_nr_running_avg
