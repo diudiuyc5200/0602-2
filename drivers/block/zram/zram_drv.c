@@ -44,46 +44,6 @@
 u64 zram_dedup_dup_size(struct zram *zram);
 u64 zram_dedup_meta_size(struct zram *zram);
 
-/* 在文件的开头或适当位置添加这些函数 */
-
-/*
- * zram_set_entry - 设置 zram 表项
- */
-static void zram_set_entry(struct zram *zram, u32 index, unsigned long handle)
-{
-    zram->table[index].handle = handle;
-}
-
-/*
- * zram_dedup_dup_size - 返回去重数据的大小
- * 如果没有启用去重功能，返回 0
- */
-u64 zram_dedup_dup_size(struct zram *zram)
-{
-#ifdef CONFIG_ZRAM_DEDUP
-    /* 如果启用了去重功能，返回实际的去重数据大小 */
-    /* 这里需要根据你的实际实现来返回适当的值 */
-    return 0;
-#else
-    return 0;
-#endif
-}
-
-/*
- * zram_dedup_meta_size - 返回去重元数据的大小  
- * 如果没有启用去重功能，返回 0
- */
-u64 zram_dedup_meta_size(struct zram *zram)
-{
-#ifdef CONFIG_ZRAM_DEDUP
-    /* 如果启用了去重功能，返回实际的去重元数据大小 */
-    /* 这里需要根据你的实际实现来返回适当的值 */
-    return 0;
-#else
-    return 0;
-#endif
-}
-
 static DEFINE_IDR(zram_index_idr);
 /* idr index must be protected */
 static DEFINE_MUTEX(zram_index_mutex);
@@ -2957,3 +2917,33 @@ MODULE_PARM_DESC(num_devices, "Number of pre-created zram devices");
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Nitin Gupta <ngupta@vflare.org>");
 MODULE_DESCRIPTION("Compressed RAM Block Device");
+
+/*
+ * zram_dedup_dup_size - 返回去重数据的大小
+ * 如果没有启用去重功能，返回 0
+ */
+u64 zram_dedup_dup_size(struct zram *zram)
+{
+#ifdef CONFIG_ZRAM_DEDUP
+    /* 如果启用了去重功能，返回实际的去重数据大小 */
+    /* 这里需要根据你的实际实现来返回适当的值 */
+    return 0;
+#else
+    return 0;
+#endif
+}
+
+/*
+ * zram_dedup_meta_size - 返回去重元数据的大小  
+ * 如果没有启用去重功能，返回 0
+ */
+u64 zram_dedup_meta_size(struct zram *zram)
+{
+#ifdef CONFIG_ZRAM_DEDUP
+    /* 如果启用了去重功能，返回实际的去重元数据大小 */
+    /* 这里需要根据你的实际实现来返回适当的值 */
+    return 0;
+#else
+    return 0;
+#endif
+}

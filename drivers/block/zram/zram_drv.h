@@ -1,4 +1,16 @@
-/* * Compressed RAM block device * * Copyright (C) 2008, 2009, 2010 Nitin Gupta * 2012, 2013 Minchan Kim * * This code is released using a dual license strategy: BSD/GPL * You can choose the licence that better fits your requirements. * * Released under the terms of 3-clause BSD License * Released under the terms of GNU General Public License Version 2.0 * */
+/*
+ * Compressed RAM block device
+ *
+ * Copyright (C) 2008, 2009, 2010  Nitin Gupta
+ *               2012, 2013 Minchan Kim
+ *
+ * This code is released using a dual license strategy: BSD/GPL
+ * You can choose the licence that better fits your requirements.
+ *
+ * Released under the terms of 3-clause BSD License
+ * Released under the terms of GNU General Public License Version 2.0
+ *
+ */
 #ifndef _ZRAM_DRV_H_
 #define _ZRAM_DRV_H_
 
@@ -7,17 +19,15 @@
 #include <linux/crypto.h>
 #include "zcomp.h"
 
-/* zram_set_entry 应该是静态内联函数，因为它只在 zram_drv.c 中使用 */
+/* 先声明 struct zram 结构体 */
+struct zram;
+
+/* zram_set_entry 函数声明 */
 static inline void zram_set_entry(struct zram *zram, u32 index, unsigned long handle);
 
 /* 去重相关函数声明 */
 u64 zram_dedup_dup_size(struct zram *zram);
 u64 zram_dedup_meta_size(struct zram *zram);
-
-#ifdef CONFIG_ZRAM_DEDUP
-extern unsigned long zram_dedup_dup_size(struct zram *zram);
-extern unsigned long zram_dedup_meta_size(struct zram *zram);
-#endif
 
 #define SECTORS_PER_PAGE_SHIFT (PAGE_SHIFT - SECTOR_SHIFT)
 #define SECTORS_PER_PAGE (1 << SECTORS_PER_PAGE_SHIFT)
@@ -26,7 +36,16 @@ extern unsigned long zram_dedup_meta_size(struct zram *zram);
 #define ZRAM_SECTOR_PER_LOGICAL_BLOCK \
     (1 << (ZRAM_LOGICAL_BLOCK_SHIFT - SECTOR_SHIFT))
 
-/* * The lower ZRAM_FLAG_SHIFT bits of table.flags is for * object size (excluding header), the higher bits is for * zram_pageflags. * * zram is mainly used for memory efficiency so we want to keep memory * footprint small so we can squeeze size and flags into a field. * The lower ZRAM_FLAG_SHIFT bits is for object size (excluding header), * the higher bits is for zram_pageflags. */
+/*
+ * The lower ZRAM_FLAG_SHIFT bits of table.flags is for
+ * object size (excluding header), the higher bits is for
+ * zram_pageflags.
+ *
+ * zram is mainly used for memory efficiency so we want to keep memory
+ * footprint small so we can squeeze size and flags into a field.
+ * The lower ZRAM_FLAG_SHIFT bits is for object size (excluding header),
+ * the higher bits is for zram_pageflags.
+ */
 #define ZRAM_FLAG_SHIFT (PAGE_SHIFT + 1)
 
 /* Flags for zram pages (table[page_no].flags) */
@@ -57,7 +76,9 @@ struct writeback_batch_pages {
 };
 #endif
 
-/*-- Data structures *//* Allocated for each disk page */
+/*-- Data structures */
+
+/* Allocated for each disk page */
 struct zram_table_entry {
     union {
         unsigned long handle;
@@ -120,13 +141,20 @@ struct zram {
     struct gendisk *disk;
     /* Prevent concurrent execution of device init */
     struct rw_semaphore init_lock;
-    /* * the number of pages zram can consume for storing compressed data */
+    /*
+     * the number of pages zram can consume for storing compressed data
+     */
     unsigned long limit_pages;
     struct zram_stats stats;
-    /* * This is the limit on amount of *uncompressed* worth of data * we can store in a disk. */
+    /*
+     * This is the limit on amount of *uncompressed* worth of data
+     * we can store in a disk.
+     */
     u64 disksize;                   /* bytes */
     char compressor[CRYPTO_MAX_ALG_NAME];
-    /* * zram is claimed so open request will be failed */
+    /*
+     * zram is claimed so open request will be failed
+     */
     bool claim;                     /* Protected by bdev->bd_mutex */
 #ifdef CONFIG_ZRAM_WRITEBACK
     struct file *backing_dev;
@@ -150,13 +178,10 @@ struct zram {
 #endif
 };
 
-/* Function declarations for the missing functions */
-#ifdef CONFIG_ZRAM_DEDUP
-extern unsigned long zram_dedup_dup_size(struct zram *zram);
-extern unsigned long zram_dedup_meta_size(struct zram *zram);
-#endif
-
-/* zram_set_entry is used to set the entry in the zram table */
-extern void zram_set_entry(struct zram *zram, int index, struct page *page);
+/* 现在可以定义内联函数，因为 struct zram 已经完整定义了 */
+static inline void zram_set_entry(struct zram *zram, u32 index, unsigned long handle)
+{
+    zram->table[index].handle = handle;
+}
 
 #endif /* _ZRAM_DRV_H_ */
