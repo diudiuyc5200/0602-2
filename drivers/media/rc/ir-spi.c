@@ -32,7 +32,7 @@
 #include <linux/spi/spi.h>
 #include <linux/miscdevice.h>
 #include <uapi/linux/lirc.h>
-#include <asm/uaccess.h>
+#include <linux/uaccess.h>
 
 #define IR_SPI_DRIVER_NAME		"ir-spi"
 
