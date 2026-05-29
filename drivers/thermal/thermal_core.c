@@ -1,13 +1,13 @@
 /*
- *  thermal.c - Generic Thermal Management Sysfs support.
+ * thermal.c - Generic Thermal Management Sysfs support.
  *
- *  Copyright (C) 2008 Intel Corp
- *  Copyright (C) 2008 Zhang Rui <rui.zhang@intel.com>
- *  Copyright (C) 2008 Sujith Thomas <sujith.thomas@intel.com>
+ * Copyright (C) 2008 Intel Corp
+ * Copyright (C) 2008 Zhang Rui <rui.zhang@intel.com>
+ * Copyright (C) 2008 Sujith Thomas <sujith.thomas@intel.com>
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; version 2 of the License.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
  */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -76,6 +76,9 @@ struct screen_monitor {
 
 struct screen_monitor sm;
 #endif
+
+/* 💡 修复1：声明小米平台使用的全局设备变量 */
+struct device thermal_message_dev;
 
 static atomic_t switch_mode = ATOMIC_INIT(10);
 static atomic_t temp_state = ATOMIC_INIT(0);
@@ -1324,7 +1327,7 @@ exit:
  * thermal_zone_device_unregister() must be called when the device is no
  * longer needed. The passive cooling depends on the .get_trend() return value.
  *
- * Return: a pointer to the created struct thermal_zone_device or an
+ * Return: a pointer to the created struct thermal_cooling_device or an
  * in case of error, an ERR_PTR. Caller must check return value with
  * IS_ERR*() helpers.
  */
@@ -1802,6 +1805,13 @@ cpu_limits_show(struct device *dev,
 	return 0;
 }
 
+/* 💡 修复2：将参数宏与外部依赖函数声明移到安全区域（不破坏嵌套结构） */
+#ifndef CPU_LIMITS_PARAM_NUM
+#define CPU_LIMITS_PARAM_NUM 2
+#endif
+
+extern void cpu_limits_set_level(unsigned int cpu, unsigned int max);
+
 static ssize_t
 cpu_limits_store(struct device *dev,
 				      struct device_attribute *attr, const char *buf, size_t len)
@@ -1951,7 +1961,7 @@ static int of_parse_thermal_message(void)
 
 	return 0;
 }
-#endif
+#endif /* CONFIG_MACH_XIAOMI_SM8150 的统一闭合边界 */
 
 static int __init thermal_init(void)
 {
