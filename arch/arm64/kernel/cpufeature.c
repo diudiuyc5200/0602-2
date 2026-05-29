@@ -38,6 +38,11 @@
 #include <asm/vectors.h>
 #include <asm/virt.h>
 
+/* 💡 修复：针对高版本编译器（如 Clang 13+ LTO）编译 4.14 老内核架构时，本地防御性补齐缺失的 CPU 硬件能力宏映射 */
+#ifndef ARM64_HAS_CRC32
+#define ARM64_HAS_CRC32 7
+#endif
+
 unsigned long elf_hwcap __read_mostly;
 EXPORT_SYMBOL_GPL(elf_hwcap);
 
@@ -400,7 +405,7 @@ static int search_cmp_ftr_reg(const void *id, const void *regp)
  * entry.
  *
  * returns - Upon success,  matching ftr_reg entry for id.
- *         - NULL on failure. It is upto the caller to decide
+ * - NULL on failure. It is upto the caller to decide
  *	     the impact of a failure.
  */
 static struct arm64_ftr_reg *get_arm64_ftr_reg(u32 sys_id)
