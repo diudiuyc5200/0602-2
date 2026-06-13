@@ -28,6 +28,7 @@ struct inode;
  */
 struct group_info {
 	atomic_t	usage;
+u32 _padding;
 	int		ngroups;
 	kgid_t		gid[0];
 } __randomize_layout;
