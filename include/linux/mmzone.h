@@ -884,8 +884,13 @@ typedef struct pglist_data {
 	int node_id;
 	wait_queue_head_t kswapd_wait;
 	wait_queue_head_t pfmemalloc_wait;
-	struct task_struct *kswapd;	/* Protected by
-					   mem_hotplug_begin/end() */
+	struct task_struct *kswapd;
+#ifdef CONFIG_MULTIPLE_KSWAPD
+	/*
+	 * Protected by mem_hotplug_begin/end()
+	 */
+	struct task_struct *mkswapd[MAX_KSWAPD_THREADS];
+#endif
 	int kswapd_order;
 	enum zone_type kswapd_classzone_idx;
 
@@ -1126,6 +1131,9 @@ static inline int is_highmem(struct zone *zone)
 struct ctl_table;
 int min_free_kbytes_sysctl_handler(struct ctl_table *, int,
 					void *, size_t *, loff_t *);
+int kswapd_threads_sysctl_handler(struct ctl_table *table, int write,
+					void __user *buffer, size_t *length,
+					loff_t *pos);
 int watermark_scale_factor_sysctl_handler(struct ctl_table *, int,
 					void *, size_t *, loff_t *);
 extern int sysctl_lowmem_reserve_ratio[MAX_NR_ZONES-1];
