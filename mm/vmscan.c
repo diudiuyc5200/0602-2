@@ -6380,7 +6380,9 @@ static int multi_kswapd_run(int nid)
 
 	pgdat->mkswapd[0] = pgdat->kswapd;
 	for (hid = 1; hid < nr_threads; ++hid) {
-		pgdat->mkswapd[hid] = kthread_run(kswapd, pgdat, "kswapd%d:%d",
+		pgdat->mkswapd[hid] = kthread_run_perf_critical(cpu_perf_mask,
+								kswapd,
+								pgdat, "kswapd%d:%d",
 								nid, hid);
 		if (IS_ERR(pgdat->mkswapd[hid])) {
 			/* failure at boot is fatal */
