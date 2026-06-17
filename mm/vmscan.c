@@ -147,7 +147,7 @@ struct scan_control {
 /*
  * Number of active kswapd threads
  */
-#define DEF_KSWAPD_THREADS_PER_NODE 4
+#define DEF_KSWAPD_THREADS_PER_NODE 6
 int kswapd_threads = DEF_KSWAPD_THREADS_PER_NODE;
 int kswapd_threads_current = DEF_KSWAPD_THREADS_PER_NODE;
 
@@ -6484,6 +6484,8 @@ void kswapd_stop(int nid)
 		kthread_stop(kswapd);
 		NODE_DATA(nid)->kswapd = NULL;
 	}
+
+	multi_kswapd_stop(nid);
 }
 
 static int __init kswapd_init(void)
