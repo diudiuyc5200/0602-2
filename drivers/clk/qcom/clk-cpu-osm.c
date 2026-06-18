@@ -735,7 +735,7 @@ static int osm_cpufreq_cpu_init(struct cpufreq_policy *policy)
 		else
 			table[i].frequency = (XO_RATE * lval) / 1000;
 		table[i].driver_data = table[i].frequency;
-
+if (core_count == SINGLE_CORE_COUNT || table[i].frequency < 900000)
 		/* Ignore frequency if not present in DT table */
 		if (!osm_dt_find_freq(of_table, of_len, table[i].frequency))
 			table[i].frequency = CPUFREQ_ENTRY_INVALID;
