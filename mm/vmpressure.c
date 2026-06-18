@@ -653,6 +653,8 @@ void vmpressure_init(struct vmpressure *vmpr)
 	mutex_init(&vmpr->events_lock);
 	INIT_LIST_HEAD(&vmpr->events);
 	INIT_WORK(&vmpr->work, vmpressure_work_fn);
+	atomic_long_set(&vmpr->users, 0);
+	rwlock_init(&vmpr->users_lock);
 }
 
 /**
