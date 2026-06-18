@@ -451,6 +451,9 @@ void vmpressure(gfp_t gfp, struct mem_cgroup *memcg, bool tree,
  */
 void vmpressure_prio(gfp_t gfp, struct mem_cgroup *memcg, int prio)
 {
+		if (order > PAGE_ALLOC_COSTLY_ORDER)
+		return;
+	
 	/*
 	 * We only use prio for accounting critical level. For more info
 	 * see comment for vmpressure_level_critical_prio variable above.
