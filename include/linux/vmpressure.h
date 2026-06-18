@@ -26,6 +26,9 @@ struct vmpressure {
 	struct mutex events_lock;
 
 	struct work_struct work;
+
+atomic_long_t users;
+	rwlock_t users_lock;
 };
 
 struct mem_cgroup;
