@@ -4142,6 +4142,8 @@ restart:
 		goto nopage;
 
 	if (gfp_mask & __GFP_KSWAPD_RECLAIM)
+		if (!used_vmpressure)
+			used_vmpressure = vmpressure_inc_users(order);
 		wake_all_kswapds(order, ac);
 
 	/*
