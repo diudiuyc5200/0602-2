@@ -2368,12 +2368,23 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 	unsigned long anon, file;
 	unsigned long ap, fp;
 	enum lru_list lru;
+#ifdef CONFIG_OPLUS_MM_HACKS
+	unsigned long totalswap = total_swap_pages;
+#endif /* CONFIG_OPLUS_MM_HACKS */
+
+
+#ifdef CONFIG_OPLUS_MM_HACKS
+	if (!current_is_kswapd())
+		swappiness = direct_vm_swappiness;
+	if (!sc->may_swap || (mem_cgroup_get_nr_swap_pages(memcg) <= totalswap>>6)) {
+#else
 
 	prepare_workingset_protection(pgdat, sc);
 
 	/* If we have no swap space, do not bother scanning anon pages. */
 	if (!sc->may_swap || mem_cgroup_get_nr_swap_pages(memcg) <= 0) {
 		scan_balance = SCAN_FILE;
+		#endif /* CONFIG_OPLUS_MM_HACKS */
 		goto out;
 	}
 
