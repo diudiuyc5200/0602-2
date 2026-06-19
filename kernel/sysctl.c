@@ -1609,6 +1609,17 @@ static struct ctl_table vm_table[] = {
 		.mode           = 0444 /* read-only */,
 		.proc_handler   = pdflush_proc_obsolete,
 	},
+#ifdef CONFIG_OPLUS_MM_HACKS
+	{
+	        .procname	= "direct_swappiness",
+		.data		= &direct_vm_swappiness,
+		.maxlen 	= sizeof(direct_vm_swappiness),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1 	= &zero,
+		.extra2 	= &two_hundred,
+	},
+#else
 	{
 		.procname	= "swappiness",
 		.data		= &vm_swappiness,
@@ -1618,6 +1629,7 @@ static struct ctl_table vm_table[] = {
 		.extra1		= &zero,
 		.extra2		= &two_hundred,
 	},
+#endif /* CONFIG_OPLUS_MM_HACKS */
 	{
 		.procname       = "want_old_faultaround_pte",
 		.data           = &want_old_faultaround_pte,
