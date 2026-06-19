@@ -361,6 +361,9 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 	sugov_set_iowait_boost(sg_cpu, time, flags);
 	sg_cpu->last_update = time;
 
+	if (sg_policy->work_in_progress)
+		return;
+	
 	if (!sugov_should_update_freq(sg_policy, time))
 		return;
 
