@@ -366,6 +366,7 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 
 	busy = !sg_policy->need_freq_update && sugov_cpu_is_busy(sg_cpu);
 
+	raw_spin_lock(&sg_policy->update_lock);
 	if (flags & SCHED_CPUFREQ_RT_DL) {
 		next_f = policy->cpuinfo.max_freq;
 	} else {
