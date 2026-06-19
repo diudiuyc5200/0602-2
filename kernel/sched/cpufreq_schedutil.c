@@ -837,6 +837,9 @@ static int sugov_init(struct cpufreq_policy *policy)
 				cpufreq_policy_transition_delay_us(policy);
 	tunables->iowait_boost_enable = false;
 
+	/* Disable exponential frequency scaling by default */
+	tunables->exp_util = false;
+	
 	policy->governor_data = sg_policy;
 	sg_policy->tunables = tunables;
 	stale_ns = sched_ravg_window + (sched_ravg_window >> 3);
