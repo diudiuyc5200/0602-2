@@ -51,6 +51,7 @@ struct sugov_policy {
 	struct task_struct *thread;
 	bool work_in_progress;
 
+bool limits_changed;
 	bool need_freq_update;
 };
 
