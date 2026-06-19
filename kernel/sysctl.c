@@ -133,6 +133,9 @@ static unsigned long zero_ul;
 static unsigned long one_ul = 1;
 static unsigned long long_max = LONG_MAX;
 static int one_hundred = 100;
+#ifdef CONFIG_OPLUS_MM_HACKS
+extern int direct_vm_swappiness;
+#endif /* CONFIG_OPLUS_MM_HACKS */
 static int two_hundred = 200;
 static int one_thousand = 1000;
 #ifdef CONFIG_SCHED_WALT
