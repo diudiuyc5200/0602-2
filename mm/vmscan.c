@@ -192,8 +192,6 @@ unsigned long sysctl_clean_min_kbytes __read_mostly = CONFIG_CLEAN_MIN_KBYTES;
  * Direct reclaim swappiness, values range from 0 .. 60. Higher means more swappy.
  */
 int direct_vm_swappiness = 60;
-#else
-int vm_swappiness = 150;
 #endif /* CONFIG_OPLUS_MM_HACKS */
 
 /*
