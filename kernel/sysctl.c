@@ -467,11 +467,7 @@ static struct ctl_table kern_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= &zero,
-#ifdef CONFIG_OPLUS_MM_HACKS
-		.extra2         = &two_hundred,
-#else
-		.extra2		= &two_hundred,
-	#endif /* CONFIG_OPLUS_MM_HACKS */
+		.extra2         = &one,
 	},
 	{
 		.procname	= "sched_min_task_util_for_boost",
