@@ -467,8 +467,23 @@ static struct ctl_table kern_table[] = {
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= &zero,
+#ifdef CONFIG_OPLUS_MM_HACKS
+		.extra2         = &two_hundred,
+#else
 		.extra2		= &one,
+	#endif /* CONFIG_OPLUS_MM_HACKS */
 	},
+#ifdef CONFIG_OPLUS_MM_HACKS
+	{
+	        .procname	= "direct_swappiness",
+		.data		= &direct_vm_swappiness,
+		.maxlen 	= sizeof(direct_vm_swappiness),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1 	= &zero,
+		.extra2 	= &two_hundred,
+	},
+#endif /* CONFIG_OPLUS_MM_HACKS */
 	{
 		.procname	= "sched_min_task_util_for_boost",
 		.data		= &sysctl_sched_min_task_util_for_boost,
