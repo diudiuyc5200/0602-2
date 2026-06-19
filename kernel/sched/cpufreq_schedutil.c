@@ -765,6 +765,7 @@ static void sugov_tunables_save(struct cpufreq_policy *policy,
 
 	cached->up_rate_limit_us = tunables->up_rate_limit_us;
 	cached->down_rate_limit_us = tunables->down_rate_limit_us;
+	cached->exp_util = tunables->exp_util;
 }
 
 static void sugov_clear_global_tunables(void)
