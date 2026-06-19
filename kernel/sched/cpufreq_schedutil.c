@@ -640,6 +640,7 @@ static struct attribute *sugov_attributes[] = {
 	&up_rate_limit_us.attr,
 	&down_rate_limit_us.attr,
 	&iowait_boost_enable.attr,
+&exp_util.attr,
 	NULL
 };
 
