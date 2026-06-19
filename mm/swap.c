@@ -1049,4 +1049,7 @@ void __init swap_setup(void)
 	#if defined(CONFIG_ZRAM) || defined(CONFIG_ZSWAP)
 	page_cluster = 0;
 #endif
+	#ifdef CONFIG_OPLUS_MM_HACKS
+	page_cluster = 0;
+#endif /* CONFIG_OPLUS_MM_HACKS */
 }
