@@ -6404,7 +6404,7 @@ static int multi_kswapd_run(int nid)
 
 	pgdat->mkswapd[0] = pgdat->kswapd;
 	for (hid = 1; hid < nr_threads; ++hid) {
-		pgdat->mkswapd[hid] = kthread_run_perf_critical(cpu_lp_mask,
+		pgdat->mkswapd[hid] = kthread_run_perf_critical(cpu_hp_mask,
 								kswapd,
 								pgdat, "kswapd%d:%d",
 								nid, hid);
