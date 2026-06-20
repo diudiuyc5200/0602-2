@@ -1361,7 +1361,15 @@ static int __zram_bvec_write(struct zram *zram, struct bio_vec *bvec,
 compress_again:
 	zstrm = zcomp_stream_get(zram->comp);
 	src = kmap_atomic(page);
+	#ifdef CONFIG_ZRAM_ENTROPY
+	/* Just save this page uncompressible */
+	if (shannon_entropy((const u8 *)src) > sysctl_zram_entropy_threshold)
+		comp_len = PAGE_SIZE;
+	else
+		ret = zcomp_compress(zstrm, src, &comp_len);
+	#else
 	ret = zcomp_compress(zstrm, src, &comp_len);
+	#endif
 	kunmap_atomic(src);
 
 	if (unlikely(ret)) {
