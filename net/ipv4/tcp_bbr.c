@@ -304,19 +304,35 @@ static u32 bbr_min_tso_segs(struct sock *sk)
 	return sk->sk_pacing_rate < (bbr_min_tso_rate >> 3) ? 1 : 2;
 }
 
+/* Return the number of segments BBR would like in a TSO/GSO skb, given
+ * a particular max gso size as a constraint.
+ */
+static u32 bbr_tso_segs_generic(struct sock *sk, unsigned int mss_now,
+				u32 gso_max_size)
+{
+	u32 segs;
+	u64 bytes;
+
+	/* Budget a TSO/GSO burst size allowance based on bw (pacing_rate). */
+	bytes = sk->sk_pacing_rate >> sk->sk_pacing_shift;
+
+	bytes = min_t(u32, bytes, gso_max_size - 1 - MAX_TCP_HEADER);
+	segs = max_t(u32, bytes / mss_now, bbr_min_tso_segs(sk));
+	return segs;
+}
+
+/* Custom tcp_tso_autosize() for BBR, used at transmit time to cap skb size. */
+static u32  bbr_tso_segs(struct sock *sk, unsigned int mss_now)
+{
+	return bbr_tso_segs_generic(sk, mss_now, sk->sk_gso_max_size);
+}
+
+	/* Like bbr_tso_segs(), using mss_cache, ignoring driver's sk_gso_max_size. */
 static u32 bbr_tso_segs_goal(struct sock *sk)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
-	u32 segs, bytes;
 
-	/* Sort of tcp_tso_autosize() but ignoring
-	 * driver provided sk_gso_max_size.
-	 */
-	bytes = min_t(u32, sk->sk_pacing_rate >> sk->sk_pacing_shift,
-		      GSO_MAX_SIZE - 1 - MAX_TCP_HEADER);
-	segs = max_t(u32, bytes / tp->mss_cache, bbr_min_tso_segs(sk));
-
-	return min(segs, 0x7FU);
+	return  bbr_tso_segs_generic(sk, tp->mss_cache, GSO_MAX_SIZE);
 }
 
 /* Save "last known good" cwnd so we can restore it after losses or PROBE_RTT */
@@ -403,7 +419,7 @@ static u32 bbr_quantization_budget(struct sock *sk, u32 cwnd, int gain)
 	cwnd = (cwnd + 1) & ~1U;
 
 	/* Ensure gain cycling gets inflight above BDP even for small BDPs. */
-	if (bbr->mode == BBR_PROBE_BW && gain > BBR_UNIT)
+	if (bbr->mode == BBR_PROBE_BW && bbr->cycle_idx == 0)
 		cwnd += 2;
 
 	return cwnd;
@@ -418,6 +434,39 @@ static u32 bbr_inflight(struct sock *sk, u32 bw, int gain)
 	inflight = bbr_quantization_budget(sk, inflight, gain);
 
 	return inflight;
+}
+
+/* With pacing at lower layers, there's often less data "in the network" than
+ * "in flight". With TSQ and departure time pacing at lower layers (e.g. fq),
+ * we often have several skbs queued in the pacing layer with a pre-scheduled
+ * earliest departure time (EDT). BBR adapts its pacing rate based on the
+ * inflight level that it estimates has already been "baked in" by previous
+ * departure time decisions. We calculate a rough estimate of the number of our
+ * packets that might be in the network at the earliest departure time for the
+ * next skb scheduled:
+ *   in_network_at_edt = inflight_at_edt - (EDT - now) * bw
+ * If we're increasing inflight, then we want to know if the transmit of the
+ * EDT skb will push inflight above the target, so inflight_at_edt includes
+ * bbr_tso_segs_goal() from the skb departing at EDT. If decreasing inflight,
+ * then estimate if inflight will sink too low just before the EDT transmit.
+ */
+static u32 bbr_packets_in_net_at_edt(struct sock *sk, u32 inflight_now)
+{
+	struct tcp_sock *tp = tcp_sk(sk);
+	struct bbr *bbr = inet_csk_ca(sk);
+	u64 now_ns, edt_ns, interval_us;
+	u32 interval_delivered, inflight_at_edt;
+
+	now_ns = tcp_clock_ns();
+	edt_ns = max(tp->tcp_wstamp_ns, now_ns);
+	interval_us = div_u64(edt_ns - now_ns, NSEC_PER_USEC);
+	interval_delivered = (u64)bbr_bw(sk) * interval_us >> BW_SCALE;
+	inflight_at_edt = inflight_now;
+	if (bbr->pacing_gain > BBR_UNIT)              /* increasing inflight */
+		inflight_at_edt += bbr_tso_segs_goal(sk);  /* include EDT skb */
+	if (interval_delivered >= inflight_at_edt)
+		return 0;
+	return inflight_at_edt - interval_delivered;
 }
 
 /* Find the cwnd increment based on estimate of ack aggregation */
@@ -534,7 +583,7 @@ static bool bbr_is_next_cycle_phase(struct sock *sk,
 	if (bbr->pacing_gain == BBR_UNIT)
 		return is_full_length;		/* just use wall clock time */
 
-	inflight = rs->prior_in_flight;  /* what was in-flight before ACK? */
+	inflight = bbr_packets_in_net_at_edt(sk, rs->prior_in_flight);
 	bw = bbr_max_bw(sk);
 
 	/* A pacing_gain > 1.0 probes for bw by trying to raise inflight to at
