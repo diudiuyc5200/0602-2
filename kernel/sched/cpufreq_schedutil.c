@@ -835,7 +835,7 @@ static int sugov_init(struct cpufreq_policy *policy)
 	tunables->iowait_boost_enable = false;
 
 	/* Disable exponential frequency scaling by default */
-	tunables->exp_util = true;
+	tunables->exp_util = false;
 	
 	policy->governor_data = sg_policy;
 	sg_policy->tunables = tunables;
