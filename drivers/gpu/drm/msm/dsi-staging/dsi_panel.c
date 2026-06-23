@@ -832,6 +832,7 @@ ssize_t dsi_panel_get_doze_backlight(struct dsi_display *display, char *buf)
 int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 {
 	int rc = 0;
+	int bl_dc_min = panel->bl_config.bl_min_level * 2;
 	u32 bl_temp = 0;
 	struct dsi_backlight_config *bl = &panel->bl_config;
 
@@ -840,7 +841,11 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 
 	pr_debug("backlight type:%d lvl:%d\n", bl->type, bl_lvl);
 
-
+#ifdef CONFIG_EXPOSURE_ADJUSTMENT
+	if (bl_lvl > 0)
+		bl_lvl = ea_panel_calc_backlight(bl_lvl < bl_dc_min ? bl_dc_min : bl_lvl);
+#endif
+	
 	if (0 == bl_lvl){
 		if(panel->fod_dimlayer_hbm_enabled){
 			pr_info("skip set backlight=0 bacase fod_dimlayer_hbm_enabled enable");
