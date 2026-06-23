@@ -313,6 +313,12 @@ struct sde_crtc {
 	enum frame_trigger_mode_type frame_trigger_mode;
 };
 
+#ifdef CONFIG_DRM_SDE_EXPO
+enum sde_crtc_dirty_flags {
+	SDE_CRTC_DIRTY_DIM_LAYER_EXPO,
+};
+#endif
+
 #define to_sde_crtc(x) container_of(x, struct sde_crtc, base)
 
 /**
