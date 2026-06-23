@@ -5902,6 +5902,27 @@ end:
 	return rc;
 }
 
+#ifdef CONFIG_DRM_SDE_EXPO
+static int sde_crtc_exposure_atomic_check(struct sde_crtc_state *cstate,
+		struct plane_state *pstates, int cnt)
+{
+	int i, zpos = 0;
+
+	for (i = 0; i < cnt; i++) {
+		if (pstates[i].stage > zpos)
+			zpos = pstates[i].stage;
+	}
+	zpos++;
+
+	if (sde_crtc_config_exposure_dim_layer(&cstate->base, zpos)) {
+		SDE_ERROR("Failed to config dim layer\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+#endif
+
 /**
  * sde_crtc_get_num_datapath - get the number of datapath active
  *				of primary connector
