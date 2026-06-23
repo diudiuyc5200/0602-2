@@ -26,6 +26,10 @@
 #include "dsi_ctrl_hw.h"
 #include "dsi_parser.h"
 
+#ifdef CONFIG_EXPOSURE_ADJUSTMENT
+#include "exposure_adjustment.h"
+#endif
+
 #include <linux/fs.h>
 #include <asm/uaccess.h>
 #include <asm/fcntl.h>
