@@ -3407,6 +3407,53 @@ static int sde_crtc_config_fingerprint_dim_layer(struct drm_crtc_state *crtc_sta
 	return 0;
 }
 
+#ifdef CONFIG_DRM_SDE_EXPO
+static int sde_crtc_config_exposure_dim_layer(struct drm_crtc_state *crtc_state, int stage)
+{
+	struct sde_kms *kms;
+	struct sde_hw_dim_layer *dim_layer;
+	struct sde_crtc_state *cstate = to_sde_crtc_state(crtc_state);
+	struct drm_display_mode *mode = &crtc_state->adjusted_mode;
+	int alpha = sde_crtc_get_property(cstate, CRTC_PROP_DIM_LAYER_EXPO);
+	struct dsi_display *dsi_display = get_main_display();
+	struct dsi_panel *panel = dsi_display->panel;
+
+	kms = _sde_crtc_get_kms(crtc_state->crtc);
+	if (!kms || !kms->catalog) {
+		return -EINVAL;
+	}
+
+	if (cstate->num_dim_layers == SDE_MAX_DIM_LAYERS - 1) {
+		pr_err("failed to get available dim layer for exposure\n");
+		return -EINVAL;
+	}
+
+	if (!alpha) {
+		cstate->exposure_dim_layer = NULL;
+		return 0;
+	}
+
+	if ((stage + SDE_STAGE_0) >= kms->catalog->mixer[0].sblk->maxblendstages) {
+		return -EINVAL;
+	}
+
+	dim_layer = &cstate->dim_layer[cstate->num_dim_layers];
+	dim_layer->flags = SDE_DRM_DIM_LAYER_INCLUSIVE;
+	dim_layer->stage = stage + SDE_STAGE_0;
+
+	dim_layer->rect.x = 0;
+	dim_layer->rect.y = 0;
+	dim_layer->rect.w = mode->hdisplay;
+	dim_layer->rect.h = mode->vdisplay;
+	dim_layer->color_fill = (struct sde_mdss_color) {0, 0, 0, alpha};
+	cstate->exposure_dim_layer = dim_layer;
+
+	dim_layer->flags = SDE_CRTC_DIRTY_DIM_LAYER_EXPO;
+
+	return 0;
+}
+#endif
+
 /**
  * _sde_crtc_set_dest_scaler - copy dest scaler settings from userspace
  * @sde_crtc   :  Pointer to sde crtc
