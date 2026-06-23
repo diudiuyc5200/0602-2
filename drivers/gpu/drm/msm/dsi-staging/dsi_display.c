@@ -36,6 +36,10 @@
 #include "dsi_parser.h"
 #include "dsi_phy.h"
 
+#ifdef CONFIG_DRM_SDE_EXPO
+#include "sde_expo_dim_layer.h"
+#endif
+
 #define to_dsi_display(x) container_of(x, struct dsi_display, host)
 #define to_dsi_bridge(x)     container_of((x), struct dsi_bridge, base)
 #define INT_BASE_10 10
