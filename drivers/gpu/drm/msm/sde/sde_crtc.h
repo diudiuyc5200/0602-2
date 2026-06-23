@@ -452,6 +452,9 @@ struct sde_crtc_state {
 	bool dim_layer_status;
 	struct sde_hw_dim_layer *fingerprint_dim_layer;
 	struct sde_crtc_respool rp;
+#ifdef CONFIG_DRM_SDE_EXPO
+	struct sde_hw_dim_layer *exposure_dim_layer;
+#endif
 };
 
 enum sde_crtc_irq_state {
