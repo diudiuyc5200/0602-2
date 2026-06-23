@@ -59,6 +59,8 @@ msm_drm-y := \
 
 msm_drm-$(CONFIG_DRM_MSM_KCAL_CTRL) += sde/sde_hw_kcal_ctrl.o
 
+msm_drm-$(CONFIG_DRM_SDE_EXPO) += sde/sde_expo_dim_layer.o
+
 msm_drm-$(CONFIG_DRM_MSM_HDMI) += hdmi/hdmi.o \
 	hdmi/hdmi_audio.o \
 	hdmi/hdmi_bridge.o \
