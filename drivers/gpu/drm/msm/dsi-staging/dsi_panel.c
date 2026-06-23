@@ -4256,6 +4256,13 @@ int dsi_panel_drv_init(struct dsi_panel *panel,
 		goto error_gpio_release;
 	}
 
+	#ifdef CONFIG_EXPOSURE_ADJUSTMENT
+	rc = sysfs_create_group(&(panel->parent->kobj), &mdss_fb_attr_group);
+	if (rc)
+		pr_err("sysfs group creation failed, rc=%d\n", rc);
+	set_panel = panel;
+#endif
+	
 	goto exit;
 
 error_gpio_release:
