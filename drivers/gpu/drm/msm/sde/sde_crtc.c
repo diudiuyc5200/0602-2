@@ -5797,6 +5797,12 @@ static int sde_crtc_atomic_check(struct drm_crtc *crtc,
 	if (rc)
 		goto end;
 
+	#ifdef CONFIG_DRM_SDE_EXPO
+	rc = sde_crtc_exposure_atomic_check(cstate, pstates, cnt);
+	if (rc)
+		return rc;
+#endif
+	
 	/* assign mixer stages based on sorted zpos property */
 	if (cnt > 0)
 		sort(pstates, cnt, sizeof(pstates[0]), pstate_cmp, NULL);
