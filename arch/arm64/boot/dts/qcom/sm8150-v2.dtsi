@@ -446,7 +446,7 @@
 &energy_costs {
 	CPU_COST_0: core-cost0 {
 		busy-cost-data = <
-            940800   88
+            940800   84
 			1708800  137
 			1785600  146
 		>;
