@@ -1228,7 +1228,7 @@ int do_send_sig_info(int sig, struct siginfo *info, struct task_struct *p,
 	unsigned long flags;
 	int ret = -ESRCH;
 #if IS_ENABLED(CONFIG_MILLET)
-	struct millet_data data;  // 挪到函数头部变量区
+	struct millet_data data;
 #endif
 
 #ifdef CONFIG_REKERNEL
@@ -1242,7 +1242,7 @@ int do_send_sig_info(int sig, struct siginfo *info, struct task_struct *p,
 		|| sig == SIGABRT
 		|| sig == SIGQUIT) {
 
-		memset(&data, 0, sizeof(data)); // 建议清零结构体，避免脏数据
+		memset(&data, 0, sizeof(data));
 		data.mod.k_priv.sig.caller_task = current;
 		data.mod.k_priv.sig.killed_task = p;
 		data.mod.k_priv.sig.reason = KILLED_BY_PRO;
