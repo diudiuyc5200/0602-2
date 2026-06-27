@@ -28,11 +28,12 @@ struct netprio_map {
 static inline u32 task_netprioidx(struct task_struct *p)
 {
 	struct cgroup_subsys_state *css;
-	u32 idx;
+	u32 idx = 0;
 
 	rcu_read_lock();
 	css = task_css(p, net_prio_cgrp_id);
-	idx = css->cgroup->id;
+	if (css)
+		idx = css->id;
 	rcu_read_unlock();
 	return idx;
 }
