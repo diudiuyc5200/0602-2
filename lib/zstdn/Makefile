@@ -13,6 +13,9 @@ GCOV_PROFILE := y
 obj-$(CONFIG_CRYPTO_ZSTDN) += crypto_zstdn.o
 
 ccflags-y  += -I$(srctree)/drivers/xiaomi/zstdn/include
+ccflags-y += -Wno-error=deprecated-declarations
+ldflags-y += --allow-multiple-definition
+
 crypto_zstdn-y := \
 		crypto_zstd.o \
 		zstd_compress_module.o \
