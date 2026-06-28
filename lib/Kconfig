@@ -259,10 +259,6 @@ config LZ4KD_DECOMPRESS
 config LZ4K_DECOMPRESS
 	tristate
 
-config ZSTD_COMMON
-	select XXHASH
-	tristate
-
 config LZ4K_COMPRESS
 	tristate
 
@@ -274,17 +270,6 @@ config LZ4KD_COMPRESS
 
 config LZ4KD_DECOMPRESS
  	tristate
-
-config ZSTD_COMPRESS
-	select XXHASH
-	tristate
-
-config ZSTD_DECOMPRESS
-	select XXHASH
-	tristate
-
-config ZSTD_COMMON
-	tristate
 
 source "lib/xz/Kconfig"
 
