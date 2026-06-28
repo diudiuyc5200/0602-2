@@ -8,9 +8,6 @@
 # in the COPYING file in the root directory of this source tree).
 # You may select, at your option, one of the above-listed licenses.
 # ################################################################
-obj-$(CONFIG_ZSTD_COMPRESS) += zstd_compress.o
-obj-$(CONFIG_ZSTD_DECOMPRESS) += zstd_decompress.o
-obj-$(CONFIG_ZSTD_COMMON) += zstd_common.o
 
 ccflags-y += -Wno-error=deprecated-declarations
 ldflags-y += --allow-multiple-definition
