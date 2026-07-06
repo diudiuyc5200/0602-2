@@ -32,18 +32,18 @@ static DEFINE_SPINLOCK(suspend_lock);
  * FLOOR is 5msec to capture up to 3 re-draws
  * per frame for 60fps content.
  */
-#define FLOOR		        5000
+#define FLOOR		        1000
 /*
  * MIN_BUSY is 1 msec for the sample to be sent
  */
-#define MIN_BUSY		1000
+#define MIN_BUSY		100
 #define MAX_TZ_VERSION		0
 
 /*
  * CEILING is 50msec, larger than any standard
  * frame length, but less than the idle timer.
  */
-#define CEILING			50000
+#define CEILING			15000
 #define TZ_RESET_ID		0x3
 #define TZ_UPDATE_ID		0x4
 #define TZ_INIT_ID		0x6
@@ -336,12 +336,6 @@ static inline int devfreq_get_freq_level(struct devfreq *devfreq,
 	return -EINVAL;
 }
 
-#ifdef CONFIG_SIMPLE_GPU_ALGORITHM
-extern int simple_gpu_active;
-extern int simple_gpu_algorithm(int level, int *val,
-				struct devfreq_msm_adreno_tz_data *priv);
-#endif
-
 static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 {
 	int result = 0;
@@ -393,15 +387,23 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 			priv->bin.busy_time > CEILING) {
 		val = -1 * level;
 	} else {
-unsigned int refresh_rate = dsi_panel_get_refresh_rate();
-		
-		scm_data[0] = level;
-		scm_data[1] = priv->bin.total_time;
-		if (refresh_rate > 60)
-			scm_data[2] = priv->bin.busy_time * refresh_rate / 60;
-		else
-			scm_data[2] = priv->bin.busy_time;
-		scm_data[3] = context_count;
+		unsigned int refresh_rate = dsi_panel_get_refresh_rate();
+unsigned int calc_rr;
+u64 scaled_busy;
+
+if (refresh_rate > 60)
+	calc_rr = 90;
+else
+	calc_rr = 60;
+
+scm_data[0] = level;
+scaled_busy = (u64)priv->bin.busy_time * calc_rr;
+// 90Hz额外20%负载补偿，专治UI轻负载不上高频
+if (calc_rr == 90)
+	scaled_busy = scaled_busy * 3 / 2;
+
+scm_data[2] = div_u64(scaled_busy + 59, 60);
+scm_data[3] = context_count;
 		__secure_tz_update_entry3(scm_data, sizeof(scm_data),
 					&val, sizeof(val), priv);
 	}
