@@ -232,6 +232,11 @@ static int fg_get_raw_soc(struct bq_fg_chip *bq);
 static int fg_read_current(struct bq_fg_chip *bq, int *curr);
 static int fg_read_temperature(struct bq_fg_chip *bq);
 static int calc_delta_time(struct timeval *time_stamp, int *delta_time);
+
+/* ===== 添加函数声明 ===== */
+static int fg_read_volt(struct bq_fg_chip *bq);
+/* ===== 函数声明结束 ===== */
+
 /*
 static int __fg_read_byte(struct i2c_client *client, u8 reg, u8 *val)
 {
