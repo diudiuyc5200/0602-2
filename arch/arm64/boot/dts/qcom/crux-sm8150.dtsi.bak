@@ -714,7 +714,6 @@ qcom,disable-batt-low-shutdown;   /* 禁用低电关机 */
 		reg = <0x55>;
 		bq,charge-full-design = <4000000>;
 		bq,recharge-voltage   = <4380>;
-		bq,shutdown-delay-enable;
 		bq,soc_decimal_rate = <
 			0  38
 			10 35
@@ -813,7 +812,7 @@ qcom,disable-batt-low-shutdown;   /* 禁用低电关机 */
 		vib_r_spare = < 0x68 >;
 		vib_bstdbg = < 0x30 0xeb 0xd4 0 0 0 >;
 		vib_effect_id_boundary = < 10 >;
-		vib_effect_max = < 193 >;
+		vib_effect_max = < 170 >;
 		vib_trig_config = < 0 1 0 1 2
 						0 1 0 1 2
 						0 1 0 1 2 >;
@@ -974,22 +973,4 @@ qcom,disable-batt-low-shutdown;   /* 禁用低电关机 */
 
 &ssc_sensors {
 	qcom,firmware-name = "slpi_cr";
-};
-
-&ufshc_mem {
-	vdd-hba-supply = <&ufs_phy_gdsc>;
-	vdd-hba-fixed-regulator;
-	vcc-supply = <&pm8150_l10>;
-	vcc-voltage-level = <2504000 2950000>;
-	vcc-low-voltage-sup;
-	vccq-supply = <&pm8150_l9>;
-	vccq2-supply = <&pm8150_s4>;
-	vcc-max-microamp = <750000>;
-	vccq-max-microamp = <700000>;
-	vccq2-max-microamp = <750000>;
-
-	qcom,vddp-ref-clk-supply = <&pm8150_l9>;
-	qcom,vddp-ref-clk-max-microamp = <100>;
-
-	status = "ok";
 };
