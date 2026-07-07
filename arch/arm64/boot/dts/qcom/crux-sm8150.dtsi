@@ -115,10 +115,6 @@ And public attribution of xiaomi platforms(like F1X and so and)
 	vcie-supply = <&disp_vci_vreg_f1x>;
 };
 
-&gpu {
-    qcom,no-tz-voltage-control;   /* 添加此行 */
-};
-
 &pm8150l_lpg {
 	qcom,lut-patterns = <0 1 2 3 4 5 7 9 11 13 15
 				13 11 9 7 5 4 3 2 1 0>;
@@ -974,22 +970,4 @@ qcom,disable-batt-low-shutdown;   /* 禁用低电关机 */
 
 &ssc_sensors {
 	qcom,firmware-name = "slpi_cr";
-};
-
-&ufshc_mem {
-	vdd-hba-supply = <&ufs_phy_gdsc>;
-	vdd-hba-fixed-regulator;
-	vcc-supply = <&pm8150_l10>;
-	vcc-voltage-level = <2504000 2950000>;
-	vcc-low-voltage-sup;
-	vccq-supply = <&pm8150_l9>;
-	vccq2-supply = <&pm8150_s4>;
-	vcc-max-microamp = <750000>;
-	vccq-max-microamp = <700000>;
-	vccq2-max-microamp = <750000>;
-
-	qcom,vddp-ref-clk-supply = <&pm8150_l9>;
-	qcom,vddp-ref-clk-max-microamp = <100>;
-
-	status = "ok";
 };

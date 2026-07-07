@@ -21,7 +21,7 @@
 #include <linux/kernel.h>
 
 #define SUGOV_KTHREAD_PRIORITY	50
-#define UTIL_BOOST_FACTOR 150
+#define UTIL_BOOST_FACTOR 140
 
 struct sugov_tunables {
 	struct gov_attr_set attr_set;
@@ -665,7 +665,7 @@ static int sugov_init(struct cpufreq_policy *policy)
 	 */
 	if (policy->cpu >= 4) {
 		tunables->up_rate_limit_us = 500;
-		tunables->down_rate_limit_us = 50000;  /* 50ms，降频慢 */
+		tunables->down_rate_limit_us = 60000;  /* 60ms，降频慢 */
 	} else {
 		tunables->up_rate_limit_us = 500;
 		tunables->down_rate_limit_us = 5000;   /* 5ms，降频快 */
