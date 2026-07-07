@@ -226,110 +226,75 @@ static int scm_qcpe_hab_send_receive_atomic(struct smc_params_s *smc_params,
 
 static int scm_call_qcpe(u32 fn_id, struct scm_desc *desc, bool atomic)
 {
-	u32 size_bytes;
-	struct smc_params_s smc_params = {0,};
-	int ret;
-#ifdef CONFIG_GHS_VMM
-	int i;
-	uint64_t arglen = desc->arginfo & 0xf;
-	struct ion_handle *ihandle = NULL;
-#endif
+    u32 size_bytes;
+    struct smc_params_s smc_params = {0,};
+    int ret;
+    int attempts = atomic ? 1 : 3;  /* 原子上下文不重试，非原子重试 3 次 */
+    int i;
 
-	pr_info("SCM IN [QCPE]: 0x%x, 0x%x, 0x%llx, 0x%llx, 0x%llx, 0x%llx, 0x%llx\n",
-			fn_id, desc->arginfo, desc->args[0], desc->args[1],
-			desc->args[2], desc->args[3], desc->x5);
+    if (!opened) {
+        if (!atomic) {
+            if (scm_qcpe_hab_open()) {
+                pr_err("HAB channel re-open failed\n");
+                return -ENODEV;
+            }
+        } else {
+            pr_err("HAB channel is not opened\n");
+            return -ENODEV;
+        }
+    }
 
-	if (!opened) {
-		if (!atomic) {
-			if (scm_qcpe_hab_open()) {
-				pr_err("HAB channel re-open failed\n");
-				return -ENODEV;
-			}
-		} else {
-			pr_err("HAB channel is not opened\n");
-			return -ENODEV;
-		}
-	}
+    smc_params.fn_id   = fn_id | scm_version_mask;
+    smc_params.arginfo = desc->arginfo;
+    smc_params.args[0] = desc->args[0];
+    smc_params.args[1] = desc->args[1];
+    smc_params.args[2] = desc->args[2];
+    smc_params.args[3] = desc->x5;
+    smc_params.args[4] = 0;
 
-	smc_params.fn_id   = fn_id | scm_version_mask;
-	smc_params.arginfo = desc->arginfo;
-	smc_params.args[0] = desc->args[0];
-	smc_params.args[1] = desc->args[1];
-	smc_params.args[2] = desc->args[2];
+    for (i = 0; i < attempts; i++) {
+        if (!atomic) {
+            ret = scm_qcpe_hab_send_receive(&smc_params, &size_bytes);
+        } else {
+            ret = scm_qcpe_hab_send_receive_atomic(&smc_params, &size_bytes);
+        }
+        if (ret == 0)
+            break;
+        if (i < attempts - 1) {
+            pr_warn("SCM qcpe attempt %d/%d failed, ret=%d, retrying...\n",
+                    i + 1, attempts, ret);
+            msleep(10);
+        }
+    }
 
-#ifdef CONFIG_GHS_VMM
-	if (arglen <= N_REGISTER_ARGS) {
-		smc_params.args[FIRST_EXT_ARG_IDX] = desc->x5;
-	} else {
-		struct scm_extra_arg *argbuf =
-				(struct scm_extra_arg *)desc->extra_arg_buf;
-		int j = 0;
+    if (ret) {
+        pr_err("SCM qcpe failed after %d attempts, ret=%d\n", attempts, ret);
+        goto err_ret;
+    }
 
-		if (scm_version == SCM_ARMV8_64)
-			for (i = FIRST_EXT_ARG_IDX; i < MAX_SCM_ARGS; i++)
-				smc_params.args[i] = argbuf->args64[j++];
-		else
-			for (i = FIRST_EXT_ARG_IDX; i < MAX_SCM_ARGS; i++)
-				smc_params.args[i] = argbuf->args32[j++];
-	}
+    if (size_bytes != sizeof(smc_params)) {
+        pr_err("habmm_socket_recv expected size: %lu, actual=%u\n",
+                sizeof(smc_params),
+                size_bytes);
+        ret = SCM_ERROR;
+        goto err_ret;
+    }
 
-	ret = ionize_buffers(fn_id & (~SMC64_MASK), &smc_params, &ihandle);
-	if (ret)
-		return ret;
-#else
-	smc_params.args[3] = desc->x5;
-	smc_params.args[4] = 0;
-#endif
-
-	if (!atomic) {
-		ret = scm_qcpe_hab_send_receive(&smc_params, &size_bytes);
-		if (ret) {
-			pr_err("send/receive failed, non-atomic, ret= 0x%x\n",
-				ret);
-			goto err_ret;
-		}
-	} else {
-		ret = scm_qcpe_hab_send_receive_atomic(&smc_params,
-			&size_bytes);
-		if (ret) {
-			pr_err("send/receive failed, ret= 0x%x\n", ret);
-			goto err_ret;
-		}
-	}
-
-	if (size_bytes != sizeof(smc_params)) {
-		pr_err("habmm_socket_recv expected size: %lu, actual=%u\n",
-				sizeof(smc_params),
-				size_bytes);
-		ret = SCM_ERROR;
-		goto err_ret;
-	}
-
-	desc->ret[0] = smc_params.args[1];
-	desc->ret[1] = smc_params.args[2];
-	desc->ret[2] = smc_params.args[3];
-	ret = smc_params.args[0];
-	pr_info("SCM OUT [QCPE]: 0x%llx, 0x%llx, 0x%llx, 0x%llx",
-		smc_params.args[0], desc->ret[0], desc->ret[1], desc->ret[2]);
-	goto no_err;
+    desc->ret[0] = smc_params.args[1];
+    desc->ret[1] = smc_params.args[2];
+    desc->ret[2] = smc_params.args[3];
+    ret = smc_params.args[0];
+    goto no_err;
 
 err_ret:
-	if (!atomic) {
-		/* In case of an error, try to recover the hab connection
-		 * for next time. This can only be done if called in
-		 * non-atomic context.
-		 */
-		scm_qcpe_hab_close();
-		if (scm_qcpe_hab_open())
-			pr_err("scm_qcpe_hab_open failed\n");
-		}
-
+    if (!atomic) {
+        /* 只在非原子上下文尝试恢复连接 */
+        scm_qcpe_hab_close();
+        if (scm_qcpe_hab_open())
+            pr_err("scm_qcpe_hab_open failed\n");
+    }
 no_err:
-#ifdef CONFIG_GHS_VMM
-	if (ihandle)
-		free_ion_buffers(ihandle);
-#endif
-	return ret;
+    return ret;
 }
 
 bool is_scm_armv8(void)
@@ -437,46 +402,53 @@ static int allocate_extra_arg_buffer(struct scm_desc *desc, gfp_t flags)
 
 static int __scm_call2(u32 fn_id, struct scm_desc *desc, bool retry)
 {
-	int arglen = desc->arginfo & 0xf;
-	int ret;
-	u64 x0;
+    int arglen = desc->arginfo & 0xf;
+    int ret;
+    u64 x0;
+    int attempts = retry ? 3 : 1;  /* 重试 3 次 */
+    int i;
 
-	if (unlikely(!is_scm_armv8()))
-		return -ENODEV;
+    if (unlikely(!is_scm_armv8()))
+        return -ENODEV;
 
-	ret = allocate_extra_arg_buffer(desc, GFP_NOIO);
-	if (ret)
-		return ret;
+    ret = allocate_extra_arg_buffer(desc, GFP_NOIO);
+    if (ret)
+        return ret;
 
-	x0 = fn_id | scm_version_mask;
+    x0 = fn_id | scm_version_mask;
 
-	mutex_lock(&scm_lock);
+    mutex_lock(&scm_lock);
 
-	if (SCM_SVC_ID(fn_id) == SCM_SVC_LMH)
-		mutex_lock(&scm_lmh_lock);
+    if (SCM_SVC_ID(fn_id) == SCM_SVC_LMH)
+        mutex_lock(&scm_lmh_lock);
 
-	desc->ret[0] = desc->ret[1] = desc->ret[2] = 0;
+    desc->ret[0] = desc->ret[1] = desc->ret[2] = 0;
 
-	trace_scm_call_start(x0, desc);
+    for (i = 0; i < attempts; i++) {
+        ret = scm_call_qcpe(x0, desc, false);
+        if (ret == 0)
+            break;
+        if (i < attempts - 1) {
+            pr_warn("SCM call attempt %d/%d failed, ret=%d, retrying...\n",
+                    i + 1, attempts, ret);
+            msleep(10);
+        }
+    }
 
-	ret = scm_call_qcpe(x0, desc, false);
+    if (SCM_SVC_ID(fn_id) == SCM_SVC_LMH)
+        mutex_unlock(&scm_lmh_lock);
 
-	trace_scm_call_end(desc);
+    mutex_unlock(&scm_lock);
 
-	if (SCM_SVC_ID(fn_id) == SCM_SVC_LMH)
-		mutex_unlock(&scm_lmh_lock);
+    if (ret < 0)
+        pr_err("scm_call failed: func id %#llx, ret: %d, syscall returns: %#llx, %#llx, %#llx\n",
+            x0, ret, desc->ret[0], desc->ret[1], desc->ret[2]);
 
-	mutex_unlock(&scm_lock);
-
-	if (ret < 0)
-		pr_err("scm_call failed: func id %#llx, ret: %d, syscall returns: %#llx, %#llx, %#llx\n",
-			x0, ret, desc->ret[0], desc->ret[1], desc->ret[2]);
-
-	if (arglen > N_REGISTER_ARGS)
-		kfree(desc->extra_arg_buf);
-	if (ret < 0)
-		return scm_remap_error(ret);
-	return 0;
+    if (arglen > N_REGISTER_ARGS)
+        kfree(desc->extra_arg_buf);
+    if (ret < 0)
+        return scm_remap_error(ret);
+    return 0;
 }
 
 /**
