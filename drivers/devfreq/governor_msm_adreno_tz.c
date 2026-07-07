@@ -191,7 +191,6 @@ static int __secure_tz_update_entry3(unsigned int *scm_data, u32 size_scm_data,
 		int *val, u32 size_val, struct devfreq_msm_adreno_tz_data *priv)
 {
 	int ret;
-	/* sync memory before sending the commands to tz */
 	__iowmb();
 
 	if (!priv->is_64) {
@@ -205,6 +204,11 @@ static int __secure_tz_update_entry3(unsigned int *scm_data, u32 size_scm_data,
 		ret = scm_call2_atomic(SCM_SIP_FNID(SCM_SVC_IO, TZ_UPDATE_ID),
 			&desc);
 		spin_unlock(&tz_lock);
+		if (ret < 0) {
+			pr_warn(TAG "SCM call (32-bit) failed, ret=%d\n", ret);
+			*val = 0;
+			return 0;
+		}
 		*val = ret;
 	} else {
 		unsigned int cmd_id;
@@ -218,16 +222,19 @@ static int __secure_tz_update_entry3(unsigned int *scm_data, u32 size_scm_data,
 			desc.arginfo = SCM_ARGS(3);
 			cmd_id =  TZ_V2_UPDATE_ID_64;
 		} else {
-			/* Add context count infomration to update*/
 			desc.args[3] = scm_data[3];
 			desc.arginfo = SCM_ARGS(4);
 			cmd_id =  TZ_V2_UPDATE_WITH_CA_ID_64;
 		}
-			ret = scm_call2(SCM_SIP_FNID(SCM_SVC_DCVS, cmd_id),
-						&desc);
-			*val = desc.ret[0];
+		ret = scm_call2(SCM_SIP_FNID(SCM_SVC_DCVS, cmd_id), &desc);
+		if (ret < 0) {
+			pr_warn(TAG "SCM call (64-bit) failed, ret=%d\n", ret);
+			*val = 0;
+			return 0;
+		}
+		*val = desc.ret[0];
 	}
-	return ret;
+	return 0;
 }
 
 static int tz_init_ca(struct devfreq_msm_adreno_tz_data *priv)
