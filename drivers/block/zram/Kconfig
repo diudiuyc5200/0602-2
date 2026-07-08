@@ -108,7 +108,7 @@ config ZRAM_MEMORY_TRACKING
 config ZRAM_SIZE_OVERRIDE
 	int "zram size to set from kernel"
 	range 1 8
-	default 8
+	default 6
 	help
 	  This option allows setting zram size from kernel configuration
 	  instead of dynamic allocation. Size = CONFIG_ZRAM_SIZE_OVERRIDE * 1GB.
