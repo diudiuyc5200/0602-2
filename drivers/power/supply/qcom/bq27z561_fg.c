@@ -29,6 +29,10 @@
 #include <linux/random.h>
 #include <linux/regmap.h>
 #include <linux/ktime.h>
+#include <linux/timekeeping.h>   /* 需要包含这个头文件 */
+
+time64_t now = ktime_get_seconds();  /* 返回自 1970-01-01 以来的秒数 */
+
 enum print_reason {
 	PR_INTERRUPT    = BIT(0),
 	PR_REGISTER     = BIT(1),
@@ -225,12 +229,12 @@ struct bq_fg_chip {
 	int	cold_thermal_len;
 	bool	update_now;
 	bool	fast_mode;
-	/* ===== 新增：充电时间追踪 ===== */
-    ktime_t charge_start_time;    /* 充电开始时间 */
+	/* ... 原有成员 ... */
+    time64_t charge_start_sec;    /* 充电开始时间（秒） */
     int charge_start_soc;         /* 充电开始时的 SOC */
     bool is_charging;             /* 是否在充电 */
     int last_charge_report_soc;   /* 上次报告的 SOC */
-    /* ===== 新增结束 ===== */
+    /* ... 后续成员 ... */
 };
 #define bq_dbg(reason, fmt, ...)			\
 	do {						\
@@ -754,14 +758,13 @@ static int fg_read_rsoc(struct bq_fg_chip *bq)
 
     /* ===== 核心：充电状态使用时间驱动 ===== */
     if (is_charging) {
-        ktime_t now = ktime_get();
-        ktime_t elapsed;
+        time64_t now = ktime_get_seconds();
         int elapsed_sec;
         int soc_increment;
         
         /* 首次进入充电状态，记录起点 */
         if (!bq->is_charging) {
-            bq->charge_start_time = now;
+            bq->charge_start_sec = now;
             bq->charge_start_soc = last_soc;
             bq->is_charging = true;
             bq->last_charge_report_soc = last_soc;
@@ -770,8 +773,7 @@ static int fg_read_rsoc(struct bq_fg_chip *bq)
         }
         
         /* 计算充电时长（秒） */
-        elapsed = ktime_sub(now, bq->charge_start_time);
-        elapsed_sec = (int)ktime_to_sec(elapsed);
+        elapsed_sec = (int)(now - bq->charge_start_sec);
         
         /* 充电速度：每 72 秒增加 1% */
         if (elapsed_sec <= 0) {
@@ -807,7 +809,7 @@ static int fg_read_rsoc(struct bq_fg_chip *bq)
         if (bq->is_charging) {
             bq_dbg(PR_OEM, "CHARGING STOPPED: final_soc=%d\n", last_soc);
             bq->is_charging = false;
-            bq->charge_start_time = 0;
+            bq->charge_start_sec = 0;
         }
         
         soc = fg_voltage_to_soc(volt);
