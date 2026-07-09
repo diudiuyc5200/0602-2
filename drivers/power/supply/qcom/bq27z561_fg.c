@@ -769,9 +769,9 @@ static int fg_read_rsoc(struct bq_fg_chip *bq)
                    bq->charge_start_soc, volt, curr);
         }
         
-        /* 计算充电时长（秒） */
-        elapsed = ktime_sub(now, bq->charge_start_time);
-        elapsed_sec = (int)ktime_to_sec(elapsed);
+      /* 计算充电时长（秒） */
+elapsed = ktime_sub(now, bq->charge_start_time);
+elapsed_sec = (int)ktime_to_ms(elapsed) / 1000;  /* 毫秒转秒 */
         
         /* 充电速度：每 72 秒增加 1% */
         if (elapsed_sec <= 0) {
