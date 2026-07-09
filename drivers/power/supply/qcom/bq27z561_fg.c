@@ -227,7 +227,7 @@ struct bq_fg_chip {
 	bool	update_now;
 	bool	fast_mode;
 	/* ===== 新增：充电时间追踪 ===== */
-	bq->last_valid_discharge_soc = 50;
+	int last_valid_discharge_soc;
     ktime_t charge_start_time;    /* 充电开始时间 */
     int charge_start_soc;         /* 充电开始时的 SOC */
     bool is_charging;             /* 是否在充电 */
