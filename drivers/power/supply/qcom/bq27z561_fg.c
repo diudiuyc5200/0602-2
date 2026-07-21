@@ -1267,6 +1267,7 @@ static int fg_set_property(struct power_supply *psy,
             bq->custom_charge_full_design = val->intval;
             bq->charge_full_design_override = true;
             power_supply_changed(bq->fg_psy);
+            }
         break;
 	default:
 		return -EINVAL;
