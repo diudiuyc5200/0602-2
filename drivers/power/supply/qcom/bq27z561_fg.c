@@ -236,8 +236,9 @@ static int bq_voltage_to_soc(int volt_mv)
     if (volt_mv >= 3850) return 40;
     if (volt_mv >= 3800) return 30;
     if (volt_mv >= 3750) return 20;
-    if (volt_mv >= 3700) return 10;
-    if (volt_mv >= 3500) return 5;
+    if (volt_mv >= 3700) return 15;
+    if (volt_mv >= 3550) return 10;
+    if (volt_mv >= 3450) return 5;
     return 0;
 }
 
@@ -742,14 +743,14 @@ static int fg_read_rsoc(struct bq_fg_chip *bq)
         }
     } else {
         // 放电：库仑计70%权重 + 电压查表30%权重，柔和兜底，不再高压强制拉高SOC
-        final_soc = DIV_ROUND_CLOSEST(soc_coulomb * 40 + soc_volt * 60, 100);
+        final_soc = DIV_ROUND_CLOSEST(soc_coulomb * 30 + soc_volt * 70, 100);
 // 新增调试打印，每20次输出一次
      if (++soc_fix_log_cnt % 20 == 0) {
          bq_dbg(PR_OEM, "DISCHARGE MODE, coulomb_soc:%d volt_soc:%d final_soc:%d volt:%dmV",
                 soc_coulomb, soc_volt, final_soc, real_volt);
      }
         // 仅极低电压强制归零，删除3600mV以上乱修正逻辑
-        if (real_volt < 3450 && final_soc < 5) {
+        if (real_volt < 3400 && final_soc < 5) {
             final_soc = 0;
             if (++soc_fix_log_cnt % 20 == 0)
                 bq_dbg(PR_OEM, "DISCHARGE LOW VOLT FORCE SOC 0, volt:%dmV\n", real_volt);
