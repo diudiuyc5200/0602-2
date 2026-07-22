@@ -32,6 +32,8 @@
 #include <linux/regmap.h>
 #include <linux/ktime.h>
 #include <linux/kernel.h>
+#include <linux/device.h>
+#include <linux/sysfs.h>
 enum print_reason {
 	PR_INTERRUPT    = BIT(0),
 	PR_REGISTER     = BIT(1),
@@ -54,35 +56,6 @@ module_param_named(
 #define BQ_CHARGE_FULL_SOC	9750
 #define BQ_RECHARGE_SOC		9900
 #define PD_CHG_UPDATE_DELAY_US	20	/*20 sec*/
-// 容量缩放倍率计算
-static inline u32 get_cap_scale(struct bq_fg_chip *bq)
-{
-    if (!bq->charge_full_override || bq->custom_charge_full == 0)
-        return 1000;
-    u32 cust_mah = bq->custom_charge_full / 1000;
-    return DIV_ROUND_CLOSEST(cust_mah * 1000, RAW_DESIGN_CAP_MAH);
-}
-
-// 完整锂电电压-SOC查表（3.0V~4.2V分段）
-static int bq_voltage_to_soc(int volt_mv)
-{
-    if (volt_mv >= 4350) return 100;
-    if (volt_mv >= 4300) return 95;
-    if (volt_mv >= 4250) return 90;
-    if (volt_mv >= 4200) return 85;
-    if (volt_mv >= 4150) return 80;
-    if (volt_mv >= 4100) return 75;
-    if (volt_mv >= 4050) return 70;
-    if (volt_mv >= 4000) return 65;
-    if (volt_mv >= 3950) return 60;
-    if (volt_mv >= 3900) return 50;
-    if (volt_mv >= 3850) return 40;
-    if (volt_mv >= 3800) return 30;
-    if (volt_mv >= 3750) return 20;
-    if (volt_mv >= 3700) return 10;
-    if (volt_mv >= 3500) return 5;
-    return 0;
-}
 enum bq_fg_reg_idx {
 	BQ_FG_REG_CTRL = 0,
 	BQ_FG_REG_TEMP,		/* Battery Temperature */
@@ -226,6 +199,45 @@ struct bq_fg_chip {
 	bool	update_now;
 	bool	fast_mode;
 };
+// 函数前置声明，解决隐式调用报错
+static int fg_read_rm(struct bq_fg_chip *bq);
+static int fg_read_fcc(struct bq_fg_chip *bq);
+static int fg_read_rsoc(struct bq_fg_chip *bq);
+static void fg_update_status(struct bq_fg_chip *bq);
+static int bq_voltage_to_soc(int volt_mv);
+
+// 修正后get_cap_scale，变量全部放函数头部，兼容C90
+static inline u32 get_cap_scale(struct bq_fg_chip *bq)
+{
+    u32 cust_mah;
+
+    if (!bq->charge_full_override || bq->custom_charge_full == 0)
+        return 1000;
+
+    cust_mah = bq->custom_charge_full / 1000;
+    return DIV_ROUND_CLOSEST(cust_mah * 1000, RAW_DESIGN_CAP_MAH);
+}
+
+static int bq_voltage_to_soc(int volt_mv)
+{
+    if (volt_mv >= 4350) return 100;
+    if (volt_mv >= 4300) return 95;
+    if (volt_mv >= 4250) return 90;
+    if (volt_mv >= 4200) return 85;
+    if (volt_mv >= 4150) return 80;
+    if (volt_mv >= 4100) return 75;
+    if (volt_mv >= 4050) return 70;
+    if (volt_mv >= 4000) return 65;
+    if (volt_mv >= 3950) return 60;
+    if (volt_mv >= 3900) return 50;
+    if (volt_mv >= 3850) return 40;
+    if (volt_mv >= 3800) return 30;
+    if (volt_mv >= 3750) return 20;
+    if (volt_mv >= 3700) return 10;
+    if (volt_mv >= 3500) return 5;
+    return 0;
+}
+
 #define bq_dbg(reason, fmt, ...)			\
 	do {						\
 		if (debug_mask & (reason))		\
@@ -1561,6 +1573,33 @@ static ssize_t fg_attr_show_TAmbient(struct device *dev,
 			(t_buf[15] << 8) | t_buf[14]);
 	return len;
 }
+// 自定义容量节点读写
+static ssize_t custom_capacity_show(struct device *dev,
+        struct device_attribute *attr, char *buf)
+{
+    struct i2c_client *client = to_i2c_client(dev);
+    struct bq_fg_chip *bq = i2c_get_clientdata(client);
+    return sprintf(buf, "%u\n", bq->custom_charge_full);
+}
+
+static ssize_t custom_capacity_store(struct device *dev,
+        struct device_attribute *attr, const char *buf, size_t count)
+{
+    struct i2c_client *client = to_i2c_client(dev);
+    struct bq_fg_chip *bq = i2c_get_clientdata(client);
+    unsigned int cap;
+
+    if (kstrtouint(buf, 10, &cap))
+        return -EINVAL;
+
+    cap = clamp(cap, 4000000U, 16000000U);
+    bq->custom_charge_full = cap;
+    bq->charge_full_override = true;
+    power_supply_changed(bq->fg_psy);
+
+    return count;
+}
+static DEVICE_ATTR_RW(custom_capacity);
 static DEVICE_ATTR(verify_digest, 0660, verify_digest_show, verify_digest_store);
 static DEVICE_ATTR(RaTable, S_IRUGO, fg_attr_show_Ra_table, NULL);
 static DEVICE_ATTR(Qmax, S_IRUGO, fg_attr_show_Qmax, NULL);
@@ -1574,6 +1613,7 @@ static DEVICE_ATTR(TSim, S_IRUGO, fg_attr_show_TSim, NULL);
 static DEVICE_ATTR(TAmbient, S_IRUGO, fg_attr_show_TAmbient, NULL);
 static struct attribute *fg_attributes[] = {
 	&dev_attr_RaTable.attr,
+	&dev_attr_custom_capacity.attr, // 新增这一行
 	&dev_attr_Qmax.attr,
 	&dev_attr_fcc_soh.attr,
 	&dev_attr_rm.attr,
