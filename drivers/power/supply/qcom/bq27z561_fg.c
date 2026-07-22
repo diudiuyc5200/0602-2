@@ -221,10 +221,13 @@ static inline u32 get_cap_scale(struct bq_fg_chip *bq)
 static int bq_voltage_to_soc(int volt_mv)
 {
     if (volt_mv >= 4350) return 100;
-    if (volt_mv >= 4300) return 95;
-    if (volt_mv >= 4250) return 90;
+    if (volt_mv >= 4320) return 97;
+    if (volt_mv >= 4290) return 94;
+    if (volt_mv >= 4260) return 91;
+    if (volt_mv >= 4230) return 88;
     if (volt_mv >= 4200) return 85;
-    if (volt_mv >= 4150) return 80;
+    if (volt_mv >= 4170) return 82;
+    if (volt_mv >= 4140) return 78; // 新增分段，4159mV就会落到78
     if (volt_mv >= 4100) return 75;
     if (volt_mv >= 4050) return 70;
     if (volt_mv >= 4000) return 65;
@@ -739,7 +742,7 @@ static int fg_read_rsoc(struct bq_fg_chip *bq)
         }
     } else {
         // 放电：库仑计70%权重 + 电压查表30%权重，柔和兜底，不再高压强制拉高SOC
-        final_soc = DIV_ROUND_CLOSEST(soc_coulomb * 55 + soc_volt * 45, 100);
+        final_soc = DIV_ROUND_CLOSEST(soc_coulomb * 40 + soc_volt * 60, 100);
 // 新增调试打印，每20次输出一次
      if (++soc_fix_log_cnt % 20 == 0) {
          bq_dbg(PR_OEM, "DISCHARGE MODE, coulomb_soc:%d volt_soc:%d final_soc:%d volt:%dmV",
@@ -754,6 +757,17 @@ static int fg_read_rsoc(struct bq_fg_chip *bq)
     }
 
     last_soc = clamp(final_soc, 0, 100);
+    // 新增SOC步进限制逻辑
+ static int old_soc = -1;
+ int delta;
+ if (old_soc == -1)
+     old_soc = last_soc;
+ delta = last_soc - old_soc;
+ if (delta > 2)
+     last_soc = old_soc + 2;
+ if (delta < -2)
+     last_soc = old_soc - 2;
+ old_soc = last_soc;
     return last_soc;
 }
 
