@@ -13,8 +13,6 @@
  * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
- // 原厂硬件标定容量 mAh
-#define RAW_DESIGN_CAP_MAH 4000
 #define pr_fmt(fmt)    "[bq27z561] %s: " fmt, __func__
 #include <linux/module.h>
 #include <linux/param.h>
@@ -54,35 +52,6 @@ module_param_named(
 #define BQ_CHARGE_FULL_SOC	9750
 #define BQ_RECHARGE_SOC		9900
 #define PD_CHG_UPDATE_DELAY_US	20	/*20 sec*/
-// 容量缩放倍率计算
-static inline u32 get_cap_scale(struct bq_fg_chip *bq)
-{
-    if (!bq->charge_full_override || bq->custom_charge_full == 0)
-        return 1000;
-    u32 cust_mah = bq->custom_charge_full / 1000;
-    return DIV_ROUND_CLOSEST(cust_mah * 1000, RAW_DESIGN_CAP_MAH);
-}
-
-// 完整锂电电压-SOC查表（3.0V~4.2V分段）
-static int bq_voltage_to_soc(int volt_mv)
-{
-    if (volt_mv >= 4350) return 100;
-    if (volt_mv >= 4300) return 95;
-    if (volt_mv >= 4250) return 90;
-    if (volt_mv >= 4200) return 85;
-    if (volt_mv >= 4150) return 80;
-    if (volt_mv >= 4100) return 75;
-    if (volt_mv >= 4050) return 70;
-    if (volt_mv >= 4000) return 65;
-    if (volt_mv >= 3950) return 60;
-    if (volt_mv >= 3900) return 50;
-    if (volt_mv >= 3850) return 40;
-    if (volt_mv >= 3800) return 30;
-    if (volt_mv >= 3750) return 20;
-    if (volt_mv >= 3700) return 10;
-    if (volt_mv >= 3500) return 5;
-    return 0;
-}
 enum bq_fg_reg_idx {
 	BQ_FG_REG_CTRL = 0,
 	BQ_FG_REG_TEMP,		/* Battery Temperature */
@@ -688,56 +657,46 @@ static int fg_get_manufacture_data(struct bq_fg_chip *bq)
 static int fg_read_rsoc(struct bq_fg_chip *bq)
 {
     static int last_soc;
-    int soc_raw_reg;
+    int soc, ret;
     u16 real_volt = 0;
+    int fix_soc;
     int batt_current;
-    int scale = get_cap_scale(bq);
-    int rm_scaled, fcc_scaled;
-    int soc_coulomb, soc_volt, final_soc;
     static u32 soc_fix_log_cnt = 0;
 
     if (bq->fake_soc > 0)
         return bq->fake_soc;
 
-    // 读取寄存器原始数据
-    regmap_read(bq->regmap, bq->regs[BQ_FG_REG_SOC], &soc_raw_reg);
+    ret = regmap_read(bq->regmap, bq->regs[BQ_FG_REG_SOC], &soc);
     fg_read_word(bq, bq->regs[BQ_FG_REG_VOLT], &real_volt);
+    // 读取当前电流，区分充放电
     fg_read_current(bq, &batt_current);
 
-    // 获取缩放后的库仑计容量
-    rm_scaled = fg_read_rm(bq);
-    fcc_scaled = fg_read_fcc(bq);
-
-    // 库仑计计算SOC（缩放后真实容量）
-    if (fcc_scaled <= 0)
-        soc_coulomb = last_soc;
-    else
-        soc_coulomb = DIV_ROUND_CLOSEST(rm_scaled * 100, fcc_scaled);
-    soc_coulomb = clamp(soc_coulomb, 0, 100);
-
-    // 查表得到电压对应的SOC
-    soc_volt = bq_voltage_to_soc(real_volt);
-
-    if (batt_current < 0) {
-        // 充电：完全信任库仑计，屏蔽电压修正，解决秒满100%
-        final_soc = soc_coulomb;
-        if (++soc_fix_log_cnt % 20 == 0) {
-            bq_dbg(PR_OEM, "CHARGE MODE, coulomb soc:%d, volt soc:%d, volt:%dmV\n",
-                soc_coulomb, soc_volt, real_volt);
-        }
-    } else {
-        // 放电：库仑计70%权重 + 电压查表30%权重，柔和兜底，不再高压强制拉高SOC
-        final_soc = DIV_ROUND_CLOSEST(soc_coulomb * 70 + soc_volt * 30, 100);
-        // 仅极低电压强制归零，删除3600mV以上乱修正逻辑
-        if (real_volt < 3500 && final_soc < 5) {
-            final_soc = 0;
-            if (++soc_fix_log_cnt % 20 == 0)
-                bq_dbg(PR_OEM, "DISCHARGE LOW VOLT FORCE SOC 0, volt:%dmV\n", real_volt);
-        }
+    if (ret < 0) {
+        bq_dbg(PR_OEM, "could not read RSOC, ret = %d\n", ret);
+        last_soc = clamp(last_soc, 20, 95);
+        return last_soc;
     }
 
-    last_soc = clamp(final_soc, 0, 100);
-    return last_soc;
+    // 仅放电时才启用电压兜底；充电时放弃兜底，让BQ原生逻辑跑
+    if (soc == 0 && real_volt > 3600 && batt_current > 0) {
+        if (real_volt >= 4200)
+            fix_soc = 90;
+        else if (real_volt >= 4000)
+            fix_soc = 80;
+        else if (real_volt >= 3800)
+            fix_soc = 60;
+        else
+            fix_soc = 40;
+        if(++soc_fix_log_cnt % 20 == 0) {
+    bq_dbg(PR_OEM, "DISCHARGE SOC=0 volt %dmV, presetting to %d%%\n", real_volt, fix_soc);
+}
+        soc = fix_soc;
+    } else if (soc == 0 && batt_current < 0) {
+        bq_dbg(PR_OEM, "CHARGE MODE RSOC=0, skip voltage fix, wait chip self-cal\n");
+    }
+
+    last_soc = clamp(soc, 0, 100);
+    return soc;
 }
 
 #define FG_REPORT_FULL_SOC	9800
@@ -807,45 +766,57 @@ static int fg_read_current(struct bq_fg_chip *bq, int *curr)
 static int fg_read_fcc(struct bq_fg_chip *bq)
 {
     int ret;
-    u16 fcc_raw;
-    u32 scale = get_cap_scale(bq);
+    u16 fcc;
     if (bq->regs[BQ_FG_REG_FCC] == INVALID_REG_ADDR) {
         bq_dbg(PR_OEM, "FCC command not supported!\n");
         return 0;
     }
-    ret = fg_read_word(bq, bq->regs[BQ_FG_REG_FCC], &fcc_raw);
-    if (ret < 0) {
-        bq_dbg(PR_OEM, "could not read FCC, ret=%d\n", ret);
-        fcc_raw = RAW_DESIGN_CAP_MAH;
+    /* 自定义容量覆盖，动态适配任意容量 */
+    if (bq->charge_full_override && bq->custom_charge_full > 0) {
+        return bq->custom_charge_full / 1000;  /* custom_charge_full 单位 µAh → mAh */
     }
-    // 统一倍率缩放
-    return DIV_ROUND_CLOSEST(fcc_raw * scale, 1000);
+    ret = fg_read_word(bq, bq->regs[BQ_FG_REG_FCC], &fcc);
+    if (ret < 0)
+        bq_dbg(PR_OEM, "could not read FCC, ret=%d\n", ret);
+    return fcc;
 }
 
 static int fg_read_rm(struct bq_fg_chip *bq)
 {
     int ret;
-    u16 rm_raw;
-    u32 scale = get_cap_scale(bq);
-    int max_cap;
+    u16 rm;
+    int design_mah, cust_mah, max_cap;
+
     if (bq->regs[BQ_FG_REG_RM] == INVALID_REG_ADDR) {
         bq_dbg(PR_OEM, "RemainingCapacity command not supported!\n");
         return 0;
     }
-    ret = fg_read_word(bq, bq->regs[BQ_FG_REG_RM], &rm_raw);
+    ret = fg_read_word(bq, bq->regs[BQ_FG_REG_RM], &rm);
     if (ret < 0) {
         bq_dbg(PR_OEM, "could not read RM, ret=%d\n", ret);
-        rm_raw = 0;
+        return rm;
     }
-    // 统一缩放
-    int rm_scaled = DIV_ROUND_CLOSEST(rm_raw * scale, 1000);
-    max_cap = fg_read_fcc(bq);
-    // 容量限幅保护
-    if (rm_scaled <= 0)
-        rm_scaled = max_cap / 10;
-    if (rm_scaled > max_cap)
-        rm_scaled = max_cap;
-    return rm_scaled;
+
+    /* 动态倍率缩放，兼容4500/5500/8000/16000任意容量 */
+    if (bq->charge_full_override && bq->custom_charge_full > 0) {
+        design_mah = bq->batt_dc / 1000;
+        cust_mah = bq->custom_charge_full / 1000;
+        if (design_mah > 0 && cust_mah > 0) {
+            /* 先乘后除，保留小数精度，避免误差丢失 */
+            rm = rm * cust_mah / design_mah;
+        }
+    }
+
+    /* 容量上下限保护，杜绝0容量与超大溢出 */
+    design_mah = bq->batt_dc / 1000;
+    cust_mah = bq->custom_charge_full / 1000;
+    max_cap = bq->charge_full_override ? cust_mah : design_mah;
+    if (rm <= 0)
+        rm = max_cap / 10; /* 最低保留10%容量，不会直接掉到0 */
+    if (rm > max_cap)
+        rm = max_cap;
+
+    return rm;
 }
 
 static int fg_read_soh(struct bq_fg_chip *bq)
