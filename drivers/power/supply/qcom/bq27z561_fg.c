@@ -1187,7 +1187,7 @@ static int fg_get_property(struct power_supply *psy, enum power_supply_property 
 			break;
 		}
 		if (bq->old_hw) {
-			val->intval = 4050000;
+			val->intval = 16000000;
 			break;
 		}
 		ret = fg_read_fcc(bq);
@@ -1257,7 +1257,7 @@ static int fg_get_property(struct power_supply *psy, enum power_supply_property 
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
 		if (bq->old_hw) {
-			val->intval = 4050000;
+			val->intval = 16000000;
 			break;
 		}
 		ret = fg_get_charge_counter(bq, &val->intval);
