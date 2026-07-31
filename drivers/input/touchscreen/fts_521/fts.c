@@ -5149,6 +5149,12 @@ static int fts_mode_handler(struct fts_ts_info *info, int force)
 		if (fts_need_enter_lp_mode()) {
 			logError(1, "%s %s: Sense OFF by FOD \n", tag, __func__);
 			logError(1, "%s %s,send long press and gesture cmd\n", tag, __func__);
+			u8 doze_cmd[4] = {FTS_CMD_CUSTOM, 0x00, 0x00, 0x00};
+        u16 reg_val = (info->doze_time / 8 - 1) / 10;
+        if (reg_val > 0xFF) reg_val = 0xFF;
+        doze_cmd[3] = (u8)reg_val;
+        fts_write_dma_safe(doze_cmd, 4);
+        logError(1, "%s Set doze_time reg to 0x%02X\n", tag, doze_cmd[3]);
 			res = fts_write_dma_safe(gesture_cmd, ARRAY_SIZE(gesture_cmd));
 			if (res < OK)
 					logError(1, "%s %s: enter gesture and longpress failed! ERROR %08X recovery in senseOff...\n",
@@ -5166,6 +5172,12 @@ static int fts_mode_handler(struct fts_ts_info *info, int force)
 			}
 		} else {
 			logError(1, "%s %s: Sense OFF! \n", tag, __func__);
+			u8 doze_cmd[4] = {FTS_CMD_CUSTOM, 0x00, 0x00, 0x00};
+        u16 reg_val = (info->doze_time / 8 - 1) / 10;
+        if (reg_val > 0xFF) reg_val = 0xFF;
+        doze_cmd[3] = (u8)reg_val;
+        fts_write_dma_safe(doze_cmd, 4);
+        logError(1, "%s Set doze_time reg to 0x%02X\n", tag, doze_cmd[3]);
 			ret = setScanMode(SCAN_MODE_ACTIVE, 0x00);
 			res |= ret;
 
@@ -7449,6 +7461,7 @@ static int fts_probe(struct spi_device *client)
 	info->cover_enabled = 0;
 	info->grip_enabled = 0;
 	info->grip_pixel_def = 30;
+	info->doze_time = 2000;
 	info->grip_pixel = info->grip_pixel_def;
 
 	info->resume_bit = 1;
@@ -7464,8 +7477,7 @@ static int fts_probe(struct spi_device *client)
 	 * but after the interrupt has been subscribed to, pm_qos_req
 	 * may be accessed before initialization in the interrupt handler.
 	 */
-	pm_qos_add_request(&info->pm_qos_req, PM_QOS_CPU_DMA_LATENCY,
-			PM_QOS_DEFAULT_VALUE);
+	pm_qos_add_request(&info->pm_qos_req, PM_QOS_CPU_DMA_LATENCY, 50);
 
 	logError(0, "%s Init Core Lib: \n", tag);
 	initCore(info);
