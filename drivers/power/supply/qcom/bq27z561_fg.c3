@@ -734,8 +734,6 @@ static int fg_read_rsoc(struct bq_fg_chip *bq)
     // 查表得到电压对应的SOC
     soc_volt = bq_voltage_to_soc(real_volt);
 
-    u32 coulomb_term, volt_term;
-
     if (batt_current < 0) {
         // 充电：完全信任库仑计，屏蔽电压修正，解决秒满100%
         final_soc = soc_coulomb;
@@ -745,9 +743,7 @@ static int fg_read_rsoc(struct bq_fg_chip *bq)
         }
     } else {
         // 放电：库仑计70%权重 + 电压查表30%权重，柔和兜底，不再高压强制拉高SOC
-        coulomb_term = (soc_coulomb + 20) * 20;
-    volt_term = (soc_volt + 6) * 80;
-    final_soc = DIV_ROUND_CLOSEST(coulomb_term + volt_term, 100);
+        final_soc = DIV_ROUND_CLOSEST(soc_coulomb * 20 + soc_volt * 88, 100);
 // 新增调试打印，每20次输出一次
      if (++soc_fix_log_cnt % 20 == 0) {
          bq_dbg(PR_OEM, "DISCHARGE MODE, coulomb_soc:%d volt_soc:%d final_soc:%d volt:%dmV",
@@ -1191,7 +1187,7 @@ static int fg_get_property(struct power_supply *psy, enum power_supply_property 
 			break;
 		}
 		if (bq->old_hw) {
-			val->intval = 4050000;
+			val->intval = 16000000;
 			break;
 		}
 		ret = fg_read_fcc(bq);
@@ -1261,7 +1257,7 @@ static int fg_get_property(struct power_supply *psy, enum power_supply_property 
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
 		if (bq->old_hw) {
-			val->intval = 4050000;
+			val->intval = 16000000;
 			break;
 		}
 		ret = fg_get_charge_counter(bq, &val->intval);
