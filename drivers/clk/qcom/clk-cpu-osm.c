@@ -14,7 +14,7 @@
 #define pr_debug pr_info
 #define pr_fmt(fmt) "clk: %s: " fmt, __func__
 // CPU7 允许最大OSM档位，2841600kHz对应idx，自行从osm_table查表确认
-#define CPU7_MAX_PERF_IDX    15
+#define CPU7_MAX_PERF_IDX    14
 
 #include <linux/debugfs.h>
 #include <linux/kernel.h>
