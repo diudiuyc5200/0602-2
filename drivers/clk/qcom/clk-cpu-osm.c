@@ -10,7 +10,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
+#undef pr_debug
+#define pr_debug pr_info
 #define pr_fmt(fmt) "clk: %s: " fmt, __func__
 
 #include <linux/debugfs.h>
