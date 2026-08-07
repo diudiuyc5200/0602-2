@@ -745,8 +745,8 @@ static int fg_read_rsoc(struct bq_fg_chip *bq)
         }
     } else {
         // 放电：库仑计70%权重 + 电压查表30%权重，柔和兜底，不再高压强制拉高SOC
-        coulomb_term = (soc_coulomb + 15) * 20;
-    volt_term = (soc_volt + 4) * 80;
+        coulomb_term = (soc_coulomb + 20) * 20;
+    volt_term = (soc_volt + 8) * 80;
     final_soc = DIV_ROUND_CLOSEST(coulomb_term + volt_term, 100);
 // 新增调试打印，每20次输出一次
      if (++soc_fix_log_cnt % 20 == 0) {
