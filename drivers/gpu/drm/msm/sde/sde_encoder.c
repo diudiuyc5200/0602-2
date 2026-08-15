@@ -42,8 +42,6 @@
 #include "sde_hw_top.h"
 #include "sde_hw_qdss.h"
 
-#define IDLE_POWERCOLLAPSE_DURATION 300  // 原可能为 80
-#define IDLE_POWERCOLLAPSE_IN_EARLY_WAKEUP 500
 #define SDE_DEBUG_ENC(e, fmt, ...) SDE_DEBUG("enc%d " fmt,\
 		(e) ? (e)->base.base.id : -1, ##__VA_ARGS__)
 
@@ -81,7 +79,7 @@
 #define EVT_TIME_OUT_SPLIT 2
 
 /* Maximum number of VSYNC wait attempts for RSC state transition */
-#define MAX_RSC_WAIT	2
+#define MAX_RSC_WAIT	5
 
 /* Primary panel worst case VSYNC expected to be no less than 30fps */
 #define PRIMARY_VBLANK_WORST_CASE_MS 34
@@ -2055,7 +2053,7 @@ static int _sde_encoder_update_rsc_client(
 		} else {
 			SDE_EVT32(DRMID(drm_enc),
 					wait_vblank_crtc_id, crtc->base.id);
-			msleep(15);
+			msleep(PRIMARY_VBLANK_WORST_CASE_MS);
 		}
 
 		if (ret) {
@@ -4401,7 +4399,7 @@ static void sde_encoder_input_event_work_handler(struct kthread_work *work)
 	}
 
 	sde_encoder_resource_control(&sde_enc->base,
-            SDE_ENC_RC_EVENT_KICKOFF);
+			SDE_ENC_RC_EVENT_EARLY_WAKEUP);
 }
 
 static void sde_encoder_vsync_event_work_handler(struct kthread_work *work)
