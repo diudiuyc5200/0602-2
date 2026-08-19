@@ -223,6 +223,7 @@ config FENCE_DEBUG
 	bool "Print fence name to userspace"
 	depends on DRM_MSM
 	default n
+<<<<<<< HEAD
 
 config DSI_FEATURES
 	bool "Force enable ULPS and PHY poweroff"
@@ -231,3 +232,9 @@ config DSI_FEATURES
 	help
 	  If features can't be enabled in the display drivers in arch/
 	  use this switch to force the use of ULPS and PHY poweroff.
+=======
+	
+config PANEL_DC_DIMMING
+	bool "Support for sde-crtc dc_dimming layer"
+	depends on DRM_MSM
+>>>>>>> 48a73b6d69c2 (drm: msm: Implement software DC dimming layer support)
