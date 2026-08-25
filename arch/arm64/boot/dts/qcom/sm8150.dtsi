@@ -690,14 +690,16 @@ freq-energy-model;
 			label = "cont_splash_region";
 		};
 
-		ramoops: ramoops@a1600000 {
-			compatible = "ramoops";
-			reg = <0x0 0xa1600000 0x0 0x800000>;
-			record-size = <0x200000>;
-			pmsg-size = <0x200000>;
-		    ecc-size = <16>;
-		    max-reason = <4>;
-		};
+		ramoops@a1600000 {
+    compatible = "ramoops";
+    reg = <0x0 0xa1600000 0x0 0x100000>;   // 总大小改为 1MB
+    console-size = <0x80000>;               // 内核日志 512KB
+    pmsg-size = <0x80000>;                 // 用户日志 512KB
+    record-size = <0>;                     // 由 console-size 替代
+    ftrace-size = <0>;
+    ecc-size = <0>;
+    no-map;
+};
 
 		adsp_mem: adsp_region {
 			compatible = "shared-dma-pool";
