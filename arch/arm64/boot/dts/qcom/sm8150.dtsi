@@ -690,15 +690,15 @@ freq-energy-model;
 			label = "cont_splash_region";
 		};
 
-		ramoops@9ff00000 {
+		ramoops@9f800000 {
     compatible = "ramoops";
-    reg = <0x0 0x9ff00000 0x0 0x100000>;   // 1MB, 结束于 0xa0000000
-    console-size = <0x80000>;               // 512KB
-    pmsg-size = <0x80000>;                 // 512KB
-    record-size = <0>;
-    ftrace-size = <0>;
-    ecc-size = <0>;                        // 保持关闭
-    no-map;                                // 关键保留
+    reg = <0x0 0x9f800000 0x0 0x700000>;   // 总大小 8MB
+    record-size = <0x200000>;               // 2MB (内核日志)
+    console-size = <0x200000>;              // 2MB (控制台输出)
+    pmsg-size = <0x200000>;                // 2MB (用户态日志)
+    ftrace-size = <0>;                     // 不需要
+    ecc-size = <0>;
+    no-map;
 };
 
 		adsp_mem: adsp_region {
