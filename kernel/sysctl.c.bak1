@@ -256,21 +256,12 @@ static int sysrq_sysctl_handler(struct ctl_table *table, int write,
 {
 	int error;
 
-	// 如果本次调用是写入操作，直接修改 buffer 指向的值，强制为 1
-	if (write) {
-		int val = 1;
-		// 将用户空间传来的 0 直接拦截，改为 1 再写入
-		// 注意：这里需要将 val 写回 table->data 指向的 __sysrq_enabled
-		__sysrq_enabled = 1;
-		// 然后调用 sysrq_toggle_support 确保状态同步
-		sysrq_toggle_support(1);
-		return 0;  // 直接返回，不再调用 proc_dointvec
-	}
-
-	// 读操作正常走原有流程
 	error = proc_dointvec(table, write, buffer, lenp, ppos);
 	if (error)
 		return error;
+
+	if (write)
+		sysrq_toggle_support(__sysrq_enabled);
 
 	return 0;
 }
