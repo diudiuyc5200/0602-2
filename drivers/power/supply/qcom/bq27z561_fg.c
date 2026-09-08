@@ -755,7 +755,7 @@ static int fg_read_rsoc(struct bq_fg_chip *bq)
      }
         // 仅极低电压强制归零，删除3600mV以上乱修正逻辑
         if (real_volt < 3400 && final_soc < 5) {
-            final_soc = 0;
+            final_soc = 3;
             if (++soc_fix_log_cnt % 20 == 0)
                 bq_dbg(PR_OEM, "DISCHARGE LOW VOLT FORCE SOC 0, volt:%dmV\n", real_volt);
         }
@@ -769,9 +769,9 @@ static int fg_read_rsoc(struct bq_fg_chip *bq)
      old_soc = last_soc;
  delta = last_soc - old_soc;
  if (delta > 2)
-     last_soc = old_soc + 2;
+     last_soc = old_soc + 1;
  if (delta < -2)
-     last_soc = old_soc - 2;
+     last_soc = old_soc - 1;
  old_soc = last_soc;
     return last_soc;
 }
@@ -864,6 +864,7 @@ static int fg_read_rm(struct bq_fg_chip *bq)
     u16 rm_raw;
     u32 scale = get_cap_scale(bq);
     int max_cap;
+    int rm_scaled
     if (bq->regs[BQ_FG_REG_RM] == INVALID_REG_ADDR) {
         bq_dbg(PR_OEM, "RemainingCapacity command not supported!\n");
         return 0;
@@ -874,7 +875,7 @@ static int fg_read_rm(struct bq_fg_chip *bq)
         rm_raw = 0;
     }
     // 统一缩放
-    int rm_scaled = DIV_ROUND_CLOSEST(rm_raw * scale, 1000);
+    rm_scaled = DIV_ROUND_CLOSEST(rm_raw * scale, 1000);
     max_cap = fg_read_fcc(bq);
     // 容量限幅保护
     if (rm_scaled <= 0)
