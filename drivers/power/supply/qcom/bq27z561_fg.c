@@ -864,7 +864,7 @@ static int fg_read_rm(struct bq_fg_chip *bq)
     u16 rm_raw;
     u32 scale = get_cap_scale(bq);
     int max_cap;
-    int rm_scaled
+    int rm_scaled;
     if (bq->regs[BQ_FG_REG_RM] == INVALID_REG_ADDR) {
         bq_dbg(PR_OEM, "RemainingCapacity command not supported!\n");
         return 0;
