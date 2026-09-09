@@ -295,12 +295,12 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 		
 		if (policy->cpu == 7) {
     if (util > 15) {
-        unsigned int target = policy->max * 75 / 100;
+        unsigned int target = policy->max * 68 / 100;
         if (next_f < target)
             next_f = target;
     }
 } else if (policy->cpu == 4) {
-    if (util > 10) {
+    if (util > 5) {
         unsigned int target = policy->max * 70 / 100;
         if (next_f < target)
             next_f = target;
@@ -677,12 +677,12 @@ static int sugov_init(struct cpufreq_policy *policy)
 	 * 大核（CPU4-7）降频慢，保持高频更久
 	 * 小核（CPU0-3）降频快，省电
 	 */
-	if (policy->cpu >= 4) {
-		tunables->up_rate_limit_us = 500;
-		tunables->down_rate_limit_us = 500;  /* 60ms，降频慢 */
+	if (policy->cpu == 7) {
+		tunables->up_rate_limit_us = 100;
+		tunables->down_rate_limit_us = 100;  /* 60ms，降频慢 */
 	} else {
-		tunables->up_rate_limit_us = 500;
-		tunables->down_rate_limit_us = 500;   /* 5ms，降频快 */
+		tunables->up_rate_limit_us = 100;
+		tunables->down_rate_limit_us = 5000;   /* 5ms，降频快 */
 	}
 
 	policy->governor_data = sg_policy;
