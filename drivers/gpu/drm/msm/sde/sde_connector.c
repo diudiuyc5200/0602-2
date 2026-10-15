@@ -2923,7 +2923,6 @@ void sde_connector_dc_get_current_backlight(struct drm_connector *connector, uin
 	struct dsi_bridge *c_bridge = NULL;
 
 	if (!connector || !connector->encoder || !connector->encoder->bridge) {
-		SDE_ERROR("Invalid connector/encoder/bridge ptr\n");
 		return;
 	}
 
@@ -2931,7 +2930,6 @@ void sde_connector_dc_get_current_backlight(struct drm_connector *connector, uin
 	display = c_bridge->display;
 
 	if (!display || !display->panel) {
-		SDE_ERROR("invalid display/panel ptr\n");
 		return;
 	}
 
