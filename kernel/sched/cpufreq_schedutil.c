@@ -294,14 +294,14 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 		next_f = get_next_freq(sg_policy, util, max);
 		
 		if (policy->cpu == 7) {
-    if (util > 15) {
-        unsigned int target = policy->max * 68 / 100;
+    if (util > 10) {
+        unsigned int target = policy->max * 80 / 100;
         if (next_f < target)
             next_f = target;
     }
 } else if (policy->cpu == 4) {
-    if (util > 5) {
-        unsigned int target = policy->max * 70 / 100;
+    if (util > 15) {
+        unsigned int target = policy->max * 80 / 100;
         if (next_f < target)
             next_f = target;
     }
