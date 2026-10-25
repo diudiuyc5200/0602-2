@@ -293,13 +293,13 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 		sugov_iowait_boost(sg_cpu, &util, &max);
 		next_f = get_next_freq(sg_policy, util, max);
 		
-		 if (policy->cpu == 4 && util > 8) {
+		 if (policy->cpu == 4 && util > 5) {
 	unsigned int target = policy->max * 75 / 100;
 	if (next_f < target)
 		next_f = target;
 }
-if (policy->cpu == 7 && util > 10) {
-	unsigned int target = policy->max * 75 / 100;
+if (policy->cpu == 7 && util > 15) {
+	unsigned int target = policy->max * 70 / 100;
 	if (next_f < target)
 		next_f = target;
 }
