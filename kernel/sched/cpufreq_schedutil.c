@@ -366,12 +366,8 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 		 * Do not reduce the frequency if the CPU has not been idle
 		 * recently, as the reduction is likely to be premature then.
 		 */
-		 	 if (policy->cpu == 4 && util > 5) {
-	unsigned int target = policy->max * 75 / 100;
-	if (next_f < target)
-		next_f = target;
-}
-if (policy->cpu == 7 && util > 15) {
+		 
+if (policy->cpu == 7 && util > 30) {
 	unsigned int target = policy->max * 70 / 100;
 	if (next_f < target)
 		next_f = target;
@@ -399,13 +395,6 @@ static unsigned int sugov_next_freq_shared(struct sugov_cpu *sg_cpu, u64 time)
 		unsigned long j_util, j_max;
 		s64 delta_ns;
 
-		/*
-		 * If the CPU utilization was last updated before the previous
-		 * frequency update and the time elapsed between the last update
-		 * of the CPU utilization and the last frequency update is long
-		 * enough, don't take the CPU into account as it probably is
-		 * idle now (and clear iowait_boost for it).
-		 */
 		delta_ns = time - j_sg_cpu->last_update;
 		if (delta_ns > stale_ns) {
 			j_sg_cpu->iowait_boost = 0;
@@ -421,11 +410,19 @@ static unsigned int sugov_next_freq_shared(struct sugov_cpu *sg_cpu, u64 time)
 			util = j_util;
 			max = j_max;
 		}
-
 		sugov_iowait_boost(j_sg_cpu, &util, &max);
 	}
 
-	return get_next_freq(sg_policy, util, max);
+	unsigned int next_f = get_next_freq(sg_policy, util, max);
+
+	/* ========= 新增：中核cluster强制保底高频 ========= */
+	if (policy->cpu == 4 && util > 80) {
+		unsigned int target = policy->max * 75 / 100;
+		if (next_f < target)
+			next_f = target;
+	}
+
+	return next_f;
 }
 
 static void sugov_update_shared(struct update_util_data *hook, u64 time,
