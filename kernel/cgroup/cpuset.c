@@ -1856,8 +1856,6 @@ static s64 cpuset_read_s64(struct cgroup_subsys_state *css, struct cftype *cft)
 	return 0;
 }
 
-#endif
-
 /*
  * for the common functions, 'private' gives the type of file
  */
