@@ -30,6 +30,7 @@
 #include <linux/syscalls.h>
 #include <linux/irq.h>
 #include <linux/delay.h>
+#include <linux/binfmts.h>
 
 #include <linux/kthread.h>
 
@@ -780,7 +781,7 @@ static void set_load_weight(struct task_struct *p)
 static DEFINE_MUTEX(uclamp_mutex);
 
 /* Max allowed minimum utilization */
-unsigned int sysctl_sched_uclamp_util_min = SCHED_CAPACITY_SCALE;
+unsigned int sysctl_sched_uclamp_util_min = 128;
 
 /* Max allowed maximum utilization */
 unsigned int sysctl_sched_uclamp_util_max = SCHED_CAPACITY_SCALE;
