@@ -10,7 +10,6 @@ struct cpu_topology {
 	int cluster_id;
 	cpumask_t thread_sibling;
 	cpumask_t core_sibling;
-	cpumask_t android_vendor_data1;
 };
 
 extern struct cpu_topology cpu_topology[NR_CPUS];
