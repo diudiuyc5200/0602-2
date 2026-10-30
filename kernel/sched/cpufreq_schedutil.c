@@ -372,7 +372,7 @@ static void sugov_update_single(struct update_util_data *hook, u64 time,
 		 * recently, as the reduction is likely to be premature then.
 		 */
 		 
-if (policy->cpu == 7 && util > 70) {
+if (policy->cpu == 7 && util > 50) {
 	unsigned int target = policy->max * 65 / 100;
 	if (next_f < target)
 		next_f = target;
