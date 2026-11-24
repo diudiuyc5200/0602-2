@@ -33,12 +33,13 @@ static const char * const backends[] = {
 #endif
 #if IS_ENABLED(CONFIG_CRYPTO_842)
 	"842",
+#endif  // 842在这里关闭！下面lz4k系列独立判断
 #if IS_ENABLED(CONFIG_CRYPTO_LZ4K)
 	"lz4k",
 #endif
 #if IS_ENABLED(CONFIG_CRYPTO_LZ4K_OPLUS)
 	"lz4k_oplus",
- #endif
+#endif
 #if IS_ENABLED(CONFIG_CRYPTO_LZ4KD)
 	"lz4kd",
 #endif
