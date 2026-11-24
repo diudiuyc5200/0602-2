@@ -19,21 +19,16 @@
 #include "zcomp.h"
 
 static const char * const backends[] = {
+#if IS_ENABLED(CONFIG_CRYPTO_LZO)
 	"lzo",
 	"lzo-rle",
-
+#endif
 #if IS_ENABLED(CONFIG_CRYPTO_LZ4)
 	"lz4",
-#endif
-#if IS_ENABLED(CONFIG_CRYPTO_DEFLATE)
-	"deflate",
 #endif
 #if IS_ENABLED(CONFIG_CRYPTO_LZ4HC)
 	"lz4hc",
 #endif
-#if IS_ENABLED(CONFIG_CRYPTO_842)
-	"842",
-#endif  // 842在这里关闭！下面lz4k系列独立判断
 #if IS_ENABLED(CONFIG_CRYPTO_LZ4K)
 	"lz4k",
 #endif
