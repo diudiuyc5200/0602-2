@@ -67,21 +67,6 @@ KSU_GIT_VERSION := 3131
 KSU_GIT_TAG := v3.2.0
 KSU_GIT_VERSION_VALID := 1
 
-# Check if this is a git repository
-# Try to detect Git repo intelligently
-GIT_ROOT := $(shell cd $(MDIR) && $(LPATH) git rev-parse --show-toplevel 2>/dev/null)
-ifneq ($(GIT_ROOT),)
-KERNEL_GIT_ROOT := $(shell cd $(srctree) && $(LPATH) git rev-parse --show-toplevel 2>/dev/null)
-ifneq ($(GIT_ROOT),$(KERNEL_GIT_ROOT))
-# Only set version if it's a different repo from kernel
-$(shell cd $(GIT_ROOT) && [ -f .git/shallow ] && $(LPATH) git fetch --unshallow 2>/dev/null || true)
-KSU_GIT_VERSION := $(shell cd $(GIT_ROOT) && $(LPATH) git rev-list --count HEAD 2>/dev/null)
-KSU_GIT_TAG := $(shell cd $(GIT_ROOT) && $(LPATH) git describe --tags --abbrev=0 2>/dev/null)
-KSU_GIT_VERSION_VALID := 1
-$(info -- KernelSU-Next Git repo detected at: $(GIT_ROOT))
-endif
-endif
-
 # Calculate version if git version is available
 ifdef KSU_GIT_VERSION_VALID
 # ksu_version: major * 30000 + git version for historical reasons
@@ -253,6 +238,9 @@ endif
 ifeq ($(shell grep -q "^DEFINE_RWLOCK(policy_rwlock);" $(srctree)/security/selinux/ss/services.c; echo $$?),0)
 ccflags-y += -DKSU_COMPAT_HAS_EXPORTED_POLICY_RWLOCK
 endif
+ifeq ($(shell grep -q "cpus_ptr;" $(srctree)/include/linux/sched.h; echo $$?),0)
+ccflags-y += -DKSU_COMPAT_HAS_BACKPORTED_CPUS_PTR
+endif
 
 # Handle optional backports
 ifeq ($(shell grep -q "strncpy_from_user_nofault" $(srctree)/include/linux/uaccess.h; echo $$?),0)
@@ -300,5 +288,15 @@ ccflags-y += -DEXPECTED_MANAGER_HASH=\"$(KSU_NEXT_MANAGER_HASH)\"
 
 ccflags-y += -Wno-strict-prototypes -Wno-int-conversion -Wno-gcc-compat -Wno-missing-prototypes
 ccflags-y += -Wno-declaration-after-statement -Wno-unused-function -Wno-unused-variable
+
+## For susfs stuff ##
+ifeq ($(shell test -e $(srctree)/fs/susfs.c; echo $$?),0)
+$(eval SUSFS_VERSION=$(shell cat $(srctree)/include/linux/susfs.h | grep -E '^#define SUSFS_VERSION' | cut -d' ' -f3 | sed 's/"//g'))
+$(info )
+$(info -- SUSFS_VERSION: $(SUSFS_VERSION))
+else
+$(info -- You have not integrated susfs in your kernel yet.)
+$(info -- Read: https://gitlab.com/simonpunk/susfs4ksu)
+endif
 
 # Keep a new line here!! Because someone may append config
